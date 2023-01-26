@@ -47,13 +47,6 @@
  *    boot event.
  */
 
-
-/*
- * Student edit: Add your name and email address here:
- * @student    Awesome Student, Awesome.Student@Colorado.edu
-*/
-
-
 #include "stdarg.h" // for arguments
 
 #include "string.h"

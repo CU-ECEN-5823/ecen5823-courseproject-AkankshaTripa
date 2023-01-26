@@ -33,13 +33,6 @@
  *              It is to be used only for ECEN 5823 "IoT Embedded Firmware".
  *              The MSLA referenced above is in effect.
  *
- *
- *
- * Student edit: Add your name and email address here:
- * @student    Awesome Student, Awesome.Student@Colorado.edu
- *
- *
- *
  ******************************************************************************/
 #include "em_common.h"
 #include "app_assert.h"
@@ -59,6 +52,8 @@
 #include "src/ble_device_type.h"
 #include "src/gpio.h"
 #include "src/lcd.h"
+
+
 
 
 // Students: Here is an example of how to correctly include logging functions in
@@ -160,6 +155,7 @@ SL_WEAK void app_init(void)
   // Don't call any Bluetooth API functions until after the boot event.
 
   // Student Edit: Add a call to gpioInit() here
+  gpioInit();
 
 } // app_init()
 
@@ -197,13 +193,21 @@ SL_WEAK void app_process_action(void)
   //         We will create/use a scheme that is far more energy efficient in
   //         later assignments.
 
+ delayApprox(3500000);
+
+  gpioLed1SetOn(); gpioLed0SetOn();
+
   delayApprox(3500000);
 
-  gpioLed0SetOn();
+  gpioLed1SetOff(); gpioLed0SetOff();
 
-  delayApprox(3500000);
+ // delayApprox(3500000);
 
-  gpioLed0SetOff();
+   //gpioLed1SetOn();
+
+  // delayApprox(3500000);
+
+  // gpioLed1SetOff();
 
 } // app_process_action()
 
