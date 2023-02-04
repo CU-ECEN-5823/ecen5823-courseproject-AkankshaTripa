@@ -18,19 +18,19 @@ EM3         |    2240     |       174.90     |          45.67             |     
 
 ***EM0***  
 Period average current    
-![em0_avg_current_period](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledoff.png) 
+![em0_avg_current_period](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_period.png) 
 Average Current with LED ***off***  
-![em0_avg_current_ledoff](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledon.png)  
+![em0_avg_current_ledoff](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledoff.png)  
 Average Current with LED ***on***  
 ![em0_avg_current_ledon](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledon.png) 
 
 ***EM1***  
 Period average current    
-![em1_avg_current_period](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledon.png) 
+![em1_avg_current_period](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em1_avg_current_period.png) 
 Average Current with LED ***off***  
 ![em1_avg_current_ledoff](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em1_avg_current_ledoff.png) 
 Average Current with LED ***on***  
-![em1_avg_current_ledon](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em0_avg_current_ledon.png)  
+![em1_avg_current_ledon](https://github.com/CU-ECEN-5823/ecen5823-assignment2-AkankshaTripa-1/blob/master/questions/Energy_Modes_Screenshots/em1_avg_current_ledon.png)  
 
 ***EM2***  
 Period average current  
