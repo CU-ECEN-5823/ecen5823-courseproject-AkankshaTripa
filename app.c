@@ -39,7 +39,7 @@
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
 #include "app.h"
-
+#include <em_letimer.h>
 
 // *************************************************
 // Students: It is OK to modify this file.
@@ -48,7 +48,8 @@
 // *************************************************
 
 #include "sl_status.h"             // for sl_status_print()
-
+#include "src/timers.h"
+#include "src/oscillators.h"
 #include "src/ble_device_type.h"
 #include "src/gpio.h"
 #include "src/lcd.h"
@@ -89,8 +90,8 @@
 // Students: We'll need to modify this for A2 onward so that compile time we
 //           control what the lowest EM (energy mode) the MCU sleeps to. So
 //           think "#if (expression)".
-#define APP_IS_OK_TO_SLEEP      (false)
-//#define APP_IS_OK_TO_SLEEP      (true)
+//#define APP_IS_OK_TO_SLEEP      (false)  //false for EM0
+#define APP_IS_OK_TO_SLEEP      (true)    //true for EM1, EM2, EM3
 
 
 // Return values for app_sleep_on_isr_exit():
@@ -117,8 +118,6 @@
 #endif // defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 
 
-
-
 // *************************************************
 // Power Manager Callbacks
 // The values returned by these 2 functions AND
@@ -143,8 +142,6 @@ sl_power_manager_on_isr_exit_t app_sleep_on_isr_exit(void)
 #endif // defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 
 
-
-
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
@@ -155,7 +152,27 @@ SL_WEAK void app_init(void)
   // Don't call any Bluetooth API functions until after the boot event.
 
   // Student Edit: Add a call to gpioInit() here
-  gpioInit();
+   gpioInit();
+
+   Oscillator_Init();            //Initialising oscillator
+
+   initLETIMER0 ();              //Initialising LETIMER0
+
+   NVIC_ClearPendingIRQ (LETIMER0_IRQn);
+   NVIC_EnableIRQ(LETIMER0_IRQn); // config NVIC to take IRQs from LETIMER0
+
+   if(LOWEST_ENERGY_MODE==EM1)
+     {
+       sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1); //Power for EM1 needed
+     }
+   if(LOWEST_ENERGY_MODE==EM2)
+     {
+       sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM2); //Power for EM2 needed
+     }
+
+  //sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);
+
+ // sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM2);
 
 } // app_init()
 
@@ -168,7 +185,7 @@ SL_WEAK void app_init(void)
  * comment out this function. Wait loops are a bad idea in general.
  * We'll discuss how to do this a better way in the next assignment.
  *****************************************************************************/
-static void delayApprox(int delay)
+/*static void delayApprox(int delay)
 {
   volatile int i;
 
@@ -176,10 +193,7 @@ static void delayApprox(int delay)
       i=i+1;
   }
 
-} // delayApprox()
-
-
-
+}*/ // delayApprox()
 
 
 /**************************************************************************//**
@@ -193,13 +207,13 @@ SL_WEAK void app_process_action(void)
   //         We will create/use a scheme that is far more energy efficient in
   //         later assignments.
 
- delayApprox(3500000);
+ //delayApprox(3500000);
 
-  gpioLed1SetOn(); gpioLed0SetOn();
+ /* gpioLed1SetOn(); gpioLed0SetOn();
 
   delayApprox(3500000);
 
-  gpioLed1SetOff(); gpioLed0SetOff();
+  gpioLed1SetOff(); gpioLed0SetOff();*/
 
  // delayApprox(3500000);
 

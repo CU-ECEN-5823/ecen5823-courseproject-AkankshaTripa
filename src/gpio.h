@@ -24,7 +24,10 @@
 #ifndef SRC_GPIO_H_
 #define SRC_GPIO_H_
 
-
+#define LED0_port  5 // change to correct ports and pins
+#define LED0_pin   4
+#define LED1_port  5
+#define LED1_pin   5
 
 
 // Function prototypes

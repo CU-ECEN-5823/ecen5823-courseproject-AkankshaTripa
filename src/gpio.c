@@ -29,12 +29,6 @@
 // and GPIO documentation at https://siliconlabs.github.io/Gecko_SDK_Doc/efm32g/html/group__GPIO.html
 // to determine the correct values for these.
 
-#define LED0_port  5 // change to correct ports and pins
-#define LED0_pin   4
-#define LED1_port  5
-#define LED1_pin   5
-
-
 
 // Set GPIO drive strengths and modes of operation
 void gpioInit()
@@ -42,13 +36,13 @@ void gpioInit()
 
   // Student Edit:
 
-//	GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthStrongAlternateStrong);
-	GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
+   GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthStrongAlternateStrong);
+	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
 	GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, true);
 
 	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
-	GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
-	GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, true);
+	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
+	//GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, true);
 
 
 
