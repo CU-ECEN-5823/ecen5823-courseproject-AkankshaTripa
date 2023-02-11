@@ -1,5 +1,5 @@
 #include "irq.h"
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include <em_letimer.h>
 #include "src/log.h"
 #include <stdbool.h>

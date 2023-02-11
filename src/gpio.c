@@ -36,9 +36,11 @@ void gpioInit()
 
   // Student Edit:
 
-   GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthStrongAlternateStrong);
+ //  GPIO_DriveStrengthSet(gpioPortC, gpioDriveStrengthStrongAlternateStrong);
 	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-	GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, true);
+	//GPIO_PinModeSet(gpioPortC, LED0_pin, gpioModePushPull, true);
+
+	GPIO_PinModeSet( gpioPortD, I2C_TEMP_PIN, gpioModePushPull, true );
 
 	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
 	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
