@@ -55,7 +55,8 @@
 #include "src/lcd.h"
 
 
-
+#include "src/i2c.h"
+#include "src/scheduler.h"
 
 // Students: Here is an example of how to correctly include logging functions in
 //           each .c file.
@@ -170,6 +171,8 @@ SL_WEAK void app_init(void)
        sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM2); //Power for EM2 needed
      }
 
+
+
   //sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);
 
  // sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM2);
@@ -222,6 +225,22 @@ SL_WEAK void app_process_action(void)
   // delayApprox(3500000);
 
   // gpioLed1SetOff();
+
+
+  uint32_t myevent;
+
+  myevent=getNextEvent();
+
+  switch(myevent)
+  {
+    case temperature_measure_event:
+      i2cGetTemperature();
+      break;
+    case wait_event:
+      //do nothing
+      break;
+  }
+
 
 } // app_process_action()
 

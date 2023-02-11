@@ -30,6 +30,12 @@
 #define LED1_pin   5
 
 
+#define SCL_PIN 10
+#define SDA_PIN 11
+
+#define I2C_TEMP_PIN 15
+
+
 // Function prototypes
 void gpioInit();
 void gpioLed0SetOn();
@@ -37,7 +43,10 @@ void gpioLed0SetOff();
 void gpioLed1SetOn();
 void gpioLed1SetOff();
 
-
+void gpiosdaclear();
+void gpiosclclear();
+void gpioSi7021enable();
+void gpioSi7021disable();
 
 
 

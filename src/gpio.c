@@ -72,8 +72,22 @@ void gpioLed1SetOff()
 	GPIO_PinOutClear(LED1_port,LED1_pin);
 }
 
+void gpiosdaclear()
+{
+  GPIO_PinOutClear(gpioPortC, SDA_PIN);
+}
+void gpiosclclear()
+{
+  GPIO_PinOutClear(gpioPortC, SCL_PIN );
+}
 
+void gpioSi7021enable()
+{
+  GPIO_PinOutSet(gpioPortD,I2C_TEMP_PIN);
+}
 
-
-
+void gpioSi7021disable()
+{
+  GPIO_PinOutClear(gpioPortD,I2C_TEMP_PIN);
+}
 

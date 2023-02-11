@@ -6,6 +6,7 @@
 #include "em_gpio.h"
 #include <string.h>
 #include "gpio.h"
+#include "scheduler.h"
 
 void LETIMER0_IRQHandler (void)
 {
@@ -18,22 +19,19 @@ void LETIMER0_IRQHandler (void)
     uint32_t flags;
     flags = LETIMER_IntGetEnabled(LETIMER0);        //determines source of irq
 
+    LETIMER_IntClear(LETIMER0, flags);         //clear source of irq
     CORE_DECLARE_IRQ_STATE;
     CORE_ENTER_CRITICAL(); // NVIC IRQs are disabled
 
 
-    if(LETIMER0->IF & LETIMER_IF_UF)               //checking underflow flag
+    if(flags & LETIMER_IF_UF)               //checking underflow flag
     {
-        LETIMER_IntClear(LETIMER0, flags);         //clear source of irq
-        gpioLed0SetOff();                          //perform action
+
+        schedulerSetEventTemperatureMeasurement();         //perform action
 
     }
 
-    if(LETIMER0->IF & LETIMER_IF_COMP1)           //checking comp1 flag
-    {
-         LETIMER_IntClear(LETIMER0, flags);       //clear source of irq
-         gpioLed0SetOn();                         //perform action
-     }
+
 
     CORE_EXIT_CRITICAL(); // NVIC IRQs are re-enabled
 

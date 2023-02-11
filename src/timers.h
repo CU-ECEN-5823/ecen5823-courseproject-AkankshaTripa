@@ -7,7 +7,8 @@
 
 // define anything a caller needs
 #define LETIMER_ON_TIME_MS 175
-#define LETIMER_PERIOD_MS 2250
+//#define LETIMER_PERIOD_MS 2250
+#define LETIMER_PERIOD_MS 3000                  //to give interrupt of 3 sec
 #define PRESCALER_VALUE 4
 
 #if((LOWEST_ENERGY_MODE==0)||(LOWEST_ENERGY_MODE==1)||(LOWEST_ENERGY_MODE==2))
@@ -23,5 +24,6 @@
 // function prototypes
 void initLETIMER0 ();
 
+void timerWaitUs(uint32_t waitUs);
 
 #endif

@@ -1,9 +1,21 @@
 /*
  * References: All the initialization has been taken form lecture slides
+ *
+ * timerWaitUs(): Guidance by Varun Mehta
  * */
 
 #include <em_letimer.h>
 #include "timers.h"
+#include "oscillators.h"
+
+#define INCLUDE_LOG_DEBUG 1
+#include "src/log.h"
+
+//static const uint16_t USEC_PER_MSEC = 1000;
+//static const uint16_t MSEC_PER_SEC = 1000;
+
+#define ACTUAL_FREQUENCY (CMU_ClockFreqGet(cmuClock_LETIMER0))
+
 
 void initLETIMER0 ()
 {
@@ -45,14 +57,32 @@ void initLETIMER0 ()
  // Enable the timer to starting counting down, set LETIMER0_CMD[START] bit, see LETIMER0_STATUS[RUNNING] bit
  LETIMER_Enable (LETIMER0, true);
 
- // Test code:
- // read it a few times to make sure it's running within the range of values we expect
- //temp = LETIMER_CounterGet (LETIMER0);
- //temp = LETIMER_CounterGet (LETIMER0);
- //temp = LETIMER_CounterGet (LETIMER0);
 
 } // initLETIMER0 ()
 
 
+void timerWaitUs(uint32_t us_wait)
+{
+
+  uint32_t delay,ticks;
+  if((us_wait/1000)>LETIMER_PERIOD_MS)
+    {
+      us_wait=(LETIMER_PERIOD_MS*1000);
+     // LOG_ERROR( "Wait time exceeded the range, now wait time in %lu usecs : ", us_wait);
+    }
+
+  delay=(( (us_wait/1000) * ACTUAL_FREQUENCY)/1000);
+  ticks= LETIMER_CounterGet(LETIMER0);
+
+  while(delay)
+    {
+      if(ticks !=LETIMER_CounterGet(LETIMER0))
+        {
+          delay--;
+          ticks=LETIMER_CounterGet(LETIMER0);
+        }
+    }
+
+}
 
 
