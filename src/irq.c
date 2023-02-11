@@ -17,22 +17,20 @@ void LETIMER0_IRQHandler (void)
   //uint8_t GO_TO_SLEEP=1;
 
     uint32_t flags;
-    flags = LETIMER_IntGetEnabled(LETIMER0);        //determines source of irq
+    flags = LETIMER_IntGetEnabled(LETIMER0);                 //determines source of irq
 
-    LETIMER_IntClear(LETIMER0, flags);         //clear source of irq
+    LETIMER_IntClear(LETIMER0, flags);                      //clear source of irq
     CORE_DECLARE_IRQ_STATE;
-    CORE_ENTER_CRITICAL(); // NVIC IRQs are disabled
+    CORE_ENTER_CRITICAL();                                 // NVIC IRQs are disabled
 
 
-    if(flags & LETIMER_IF_UF)               //checking underflow flag
+    if(flags & LETIMER_IF_UF)                               //checking underflow flag
     {
 
-        schedulerSetEventTemperatureMeasurement();         //perform action
+        schedulerSetEventTemperatureMeasurement();         //event scheduler to set temperature
 
     }
 
-
-
-    CORE_EXIT_CRITICAL(); // NVIC IRQs are re-enabled
+    CORE_EXIT_CRITICAL();                                  // NVIC IRQs are re-enabled
 
  }// LETIMER0_IRQHandler()

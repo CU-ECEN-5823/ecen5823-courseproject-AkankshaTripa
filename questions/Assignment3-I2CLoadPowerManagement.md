@@ -16,7 +16,7 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
    ![Avg_current_lpmOFF](https://github.com/CU-ECEN-5823/ecen5823-assignment3-AkankshaTripa/blob/master/questions/Assignment3_Screenshots/Avg_current_lpmOFF.png)
    
 3. What is the average current when the Si7021 is Powered On?  
-   Answer:4.50mA
+   Answer:4.54mA
    <br>Screenshot:  
    ![Avg_current_lpmON](https://github.com/CU-ECEN-5823/ecen5823-assignment3-AkankshaTripa/blob/master/questions/Assignment3_Screenshots/Avg_current_lpmON.png)
    

@@ -6,14 +6,14 @@
 
 typedef enum
 {
-  temperature_measure_event = 1,
-  wait_event = 2
+  temperature_measure_event = 1,                   //event for temperature measurement
+  wait_event = 2                                   //no event, does nothing
 
 }event_si7021;
 
-uint32_t getNextEvent();
+uint32_t getNextEvent();                            //function to getNextEvent
 
-void schedulerSetEventTemperatureMeasurement();
+void schedulerSetEventTemperatureMeasurement();     //function to set event temperature
 
 
 #endif  //__SCHEDULER_H

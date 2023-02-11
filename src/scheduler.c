@@ -1,3 +1,7 @@
+/*
+ * Code Credits: Lecture Slides
+ * */
+
 #include "em_core.h"
 #include "scheduler.h"
 
@@ -6,7 +10,9 @@
 // when this routine is fetched from memory.
 
 
- uint32_t event;
+uint32_t event;
+
+
 // scheduler routine to set a scheduler event
 void schedulerSetEventTemperatureMeasurement()
 {
@@ -15,15 +21,13 @@ void schedulerSetEventTemperatureMeasurement()
  // set the event in your data structure, this has to be a read-modify-write
  // exit critical section
 
-
   CORE_DECLARE_IRQ_STATE;
 
-  CORE_ENTER_CRITICAL(); // NVIC IRQs are disabled
+  CORE_ENTER_CRITICAL();                          // NVIC IRQs are disabled
 
   event |= temperature_measure_event;              //RMW for event
 
-  CORE_EXIT_CRITICAL(); // NVIC IRQs are re-enabled
-
+  CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 
 
 } // schedulerSetEventXXX()
@@ -35,7 +39,7 @@ uint32_t getNextEvent()
   uint32_t theEvent;
   // select 1 event to return to main() code, apply priorities etc.
 
-  theEvent = wait_event; // default event, does nothing
+  theEvent = wait_event;                                    // default event, does nothing
 
  // STEPS:
   // enter critical section

@@ -1,6 +1,11 @@
+/*
+ *Code Credits: Lecture Slides
+ * */
+
+
 //Initialize the I2C hardware
 #include <em_i2c.h>
-//#define INCLUDE_LOG_DEBUG 1
+#define INCLUDE_LOG_DEBUG 1
 #include "em_device.h"
 #include "i2c.h"
 #include "gpio.h"
@@ -27,7 +32,7 @@ I2CSPM_Init_TypeDef I2C_Config = {
  .i2cClhr = i2cClockHLRStandard
  };
 
-void i2c_init()
+void i2c_init()                         //initialise i2C
 {
   I2CSPM_Init(&I2C_Config);
  }
@@ -36,9 +41,8 @@ void i2c_init()
 // Send Measure Temperature command
 I2C_TransferReturn_TypeDef transferStatus;
 I2C_TransferSeq_TypeDef transferSequence;
-uint8_t cmd_data;
-
-uint8_t read_data[2];
+uint8_t cmd_data;                            //variable to data to write
+uint8_t read_data[2];                         //variable for read operation
 
 
 I2C_TransferReturn_TypeDef i2c_write()
@@ -50,7 +54,7 @@ I2C_TransferReturn_TypeDef i2c_write()
   transferSequence.buf[0].data = &cmd_data;        // pointer to data to write
   transferSequence.buf[0].len = sizeof(cmd_data);
 
-  transferStatus = I2CSPM_Transfer (I2C0, &transferSequence);
+  transferStatus = I2CSPM_Transfer(I2C0, &transferSequence);
 
   return transferStatus;
 }
@@ -64,12 +68,12 @@ I2C_TransferReturn_TypeDef i2c_read()
   transferSequence.buf[0].data = read_data;               // pointer to data to read
   transferSequence.buf[0].len = sizeof(read_data);
 
-  transferStatus = I2CSPM_Transfer (I2C0, &transferSequence);
+  transferStatus = I2CSPM_Transfer(I2C0, &transferSequence);
 
   return transferStatus;
 }
 
-void i2cStop()
+void i2cStop()                                        //stops i2c
 {
     I2C_Reset(I2C0);                                  //Reseting I2C to the same state that it was in after a hardware reset
     I2C_Enable(I2C0,false);                           //Disabling I2C
@@ -82,7 +86,6 @@ void i2cStop()
 
 void i2cGetTemperature()
 {
-
     uint16_t temperature;
     float temp_code;
 
@@ -99,25 +102,25 @@ void i2cGetTemperature()
 
     transferStatus = i2c_read();   //perform read operation
 
-        if (transferStatus != i2cTransferDone)
+        if (transferStatus != i2cTransferDone)                            //error condition for i2c fail
         {
-           //  LOG_ERROR("I2CSPM_Transfer: I2C bus write of cmd=0x30 failed");
+             LOG_ERROR("I2CSPM_Transfer: I2C bus write of cmd=0x30 failed");
          }
 
         else
         {
-            temperature= ((read_data[1]) | (read_data[0]<<8));
+            temperature= ((read_data[1]) | (read_data[0]<<8));          //performing temperature calculation
             temp_code = (175.72 * (temperature/65536.0)) - 46.85;
-           LOG_INFO("Value of temperature from temp sensor, Si7021 is %d\n\r",(int)temp_code);
+           LOG_INFO("Value of Si7021, temperature sensor is %d C\n\r",(int)temp_code);
         }
 
         if (transferStatus < 0)
         {
-       //  LOG_ERROR("%d", transferStatus);
+           LOG_ERROR("%d", transferStatus);
         }
 
         gpioSi7021disable();                   //disabling Si7021
-        i2cStop();                             //deinitialize i2c
+        i2cStop();                             //stop i2c transfer
 
 }
 
