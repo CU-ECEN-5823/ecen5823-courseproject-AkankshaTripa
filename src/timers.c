@@ -8,11 +8,9 @@
 #include "timers.h"
 #include "oscillators.h"
 
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 
-//static const uint16_t USEC_PER_MSEC = 1000;
-//static const uint16_t MSEC_PER_SEC = 1000;
 
 #define ACTUAL_FREQUENCY (CMU_ClockFreqGet(cmuClock_LETIMER0))
 
@@ -71,7 +69,7 @@ void timerWaitUs(uint32_t us_wait)
      // LOG_ERROR( "Wait time exceeded the range, now wait time in %lu usecs : ", us_wait);
     }
 
-  delay=(( (us_wait/1000) * ACTUAL_FREQUENCY)/1000);
+  delay=(((us_wait/1000) * ACTUAL_FREQUENCY)/1000);
   ticks= LETIMER_CounterGet(LETIMER0);
 
   while(delay)

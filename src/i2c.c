@@ -14,7 +14,6 @@
 #define NO_HOLD_MASTER_MODE 0XF3         //Sequence to perform temp measurement and read back result
 
 
-
 I2CSPM_Init_TypeDef I2C_Config = {
  .port = I2C0,
  .sclPort = gpioPortC,
