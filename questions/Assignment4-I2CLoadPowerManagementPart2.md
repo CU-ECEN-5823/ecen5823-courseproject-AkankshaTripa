@@ -38,6 +38,7 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 			So, total operating time for design is 37.50 hrs
    
 6. How has the power consumption performance of your design changed since the previous assignment?
+
    Answer: 
 			The power consumption performance has decreased significantly from the previous assignment due to the use of interrupt(in this assognment) 			instead of polling(previous assignment). Also, to save power the system runs in EM3 mode and for I2c transfer it goes to  EM1 mode. The 				value of average current per period was 144 uA in last assignment and here its 22.21uA which is almost 6.48 times reduced than of the last 			value. Also, the average current when the Si7021 is Powered On was 4.54 mA and here it is 554.78 uA so again the current is reduced by a 				factor of almost 8.18. When temperature sensor is off the average current in this assignment is 2.72 uA while in the previous assignment 				it was 3.57uA so there is a slight change of almost 0.85uA here as well 
    
