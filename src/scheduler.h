@@ -26,7 +26,7 @@ typedef enum
 
 uint32_t getNextEvent();                            //function to getNextEvent
 
-void schedulerSetEventTemperatureMeasurement();     //function to set event temperature
+//void schedulerSetEventTemperatureMeasurement();     //function to set event temperature in A3
 
 void state_machine(uint32_t event);
 #endif  //__SCHEDULER_H
