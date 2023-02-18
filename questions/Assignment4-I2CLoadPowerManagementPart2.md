@@ -8,22 +8,22 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 1. What is the average current per period?
    Answer:22.21 uA
    <br>Screenshot:  
-   ![Avg_current_per_period](screenshots/assignment4/avg_current_per_period.jpg)  
+   ![Avg_current_per_period](https://github.com/CU-ECEN-5823/ecen5823-assignment4-AkankshaTripa/blob/master/questions/Assignment4_Screenshots/Avg_current_per_period.png)  
 
 2. What is the average current when the Si7021 is Powered Off?
    Answer: 2.72 uA
    <br>Screenshot:  
-   ![Avg_current_LPM_Off](screenshots/assignment4/avg_current_lpm_off.jpg)  
+   ![Avg_current_LPM_Off](https://github.com/CU-ECEN-5823/ecen5823-assignment4-AkankshaTripa/blob/master/questions/Assignment4_Screenshots/Avg_current_LPM_Off.png)  
 
 3. What is the average current when the Si7021 is Powered On?
    Answer:554.78 uA
    <br>Screenshot:  
-   ![Avg_current_LPM_On](screenshots/assignment4/avg_current_lpm_on.jpg)  
+   ![Avg_current_LPM_On](https://github.com/CU-ECEN-5823/ecen5823-assignment4-AkankshaTripa/blob/master/questions/Assignment4_Screenshots/Avg_current_LPM_On.png)  
 
 4. How long is the Si7021 Powered On for 1 temperature reading?
    Answer:105 mS
    <br>Screenshot:  
-   ![duration_lpm_on](screenshots/assignment4/avg_current_lpm_on.jpg)  
+   ![duration_lpm_on](https://github.com/CU-ECEN-5823/ecen5823-assignment4-AkankshaTripa/blob/master/questions/Assignment4_Screenshots/duration_lpm_on.png)  
 
 5. Compute what the total operating time of your design for assignment 4 would be in hours, assuming a 1000mAh battery power supply?
    Answer: From the readings the average current per perios is = 22.21 uA
