@@ -6,31 +6,38 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 *Please include screenshots of the profiler window detailing each current measurement captured.  See the file Instructions to add screenshots in assignment.docx in the ECEN 5823 Student Public Folder.* 
 
 1. What is the average current per period?
-   Answer:
+   Answer:22.21 uA
    <br>Screenshot:  
    ![Avg_current_per_period](screenshots/assignment4/avg_current_per_period.jpg)  
 
 2. What is the average current when the Si7021 is Powered Off?
-   Answer:
+   Answer: 2.72 uA
    <br>Screenshot:  
    ![Avg_current_LPM_Off](screenshots/assignment4/avg_current_lpm_off.jpg)  
 
 3. What is the average current when the Si7021 is Powered On?
-   Answer:
+   Answer:554.78 uA
    <br>Screenshot:  
-   ![Avg_current_LPM_Off](screenshots/assignment4/avg_current_lpm_on.jpg)  
+   ![Avg_current_LPM_On](screenshots/assignment4/avg_current_lpm_on.jpg)  
 
 4. How long is the Si7021 Powered On for 1 temperature reading?
-   Answer:
+   Answer:105 mS
    <br>Screenshot:  
    ![duration_lpm_on](screenshots/assignment4/avg_current_lpm_on.jpg)  
 
 5. Compute what the total operating time of your design for assignment 4 would be in hours, assuming a 1000mAh battery power supply?
-   Answer:
+   Answer: From the readings the average current per perios is = 22.21 uA
+
+                  Current for 1 hour=(22.21*3600*0.001)/3000 
+					 =26.66ms
+
+                  Total time= 1000mAh/(26.66mA)= 37.50 hrs
+			
+			So, total operating time for design is 37.50 hrs
    
 6. How has the power consumption performance of your design changed since the previous assignment?
-   Answer:
+   Answer: The power consumption performance has decreased significantly from the previous assignment due to the use of interrupt instead of polling. Also, 	     to save power  the system runs in EM3 mode and for I2c transfer it goes to  EM1 mode. The value of average current per period was 144 uA in last 	     assignment and here its 22.21uA which is almost 6.48 times reduced than of the last value. Also, the average current when the Si7021 is Powered  	     On was 4.54 mA and here it is 554.78 uA so again the current is reduced by a factor of almost 8.18. When temperature sensor is off the average    	     current in this assignment is 2.72 uA while in the previous assignment it was 3.57uA so there is a slight change of almost 0.85uA here as well 
    
 7. Describe how you tested your code for EM1 during I2C transfers.
-   Answer:  
-
+   Answer:  I have tested the code in debug mode as well as in energy profiler and the result verifies that the system is sleeping in EM1 mode during i2c 			transfer. For testing in debug mode I added breakpoint in i2c IRQ handler, once the program is executed and we hit the breakpoint then when 			we debug it stepwise it directs us to entered mode as "sleepEM1" which proves that the system sleeps in EM1 mode before interrupt occurs. 			Further, to verify that the system is entering EM3 sleep mode during sleep delays and while waiting for the next underflow interrupt, a 				breakpoint was placed inside the LETIMER0 IRQ handler when the scheduler event is set. After stepping through the code, it was found that the 			modeEntered variable was set to sleepEM3, indicating that the system was indeed in EM3 sleep mode during those periods of idle time.  
+		Also, this change can be observed through energy profiler as well, it is observed that during I2C transfers, there was a spike in the amount of 		time the LETIMER0 was waiting, and this time was programmed for EM1 sleep mode. However, in between these spikes, there was a reduction in 		      current consumption, indicating that the system was indeed in EM1 mode during I2C transfer. 

@@ -24,6 +24,8 @@
 // function prototypes
 void initLETIMER0 ();
 
-void timerWaitUs(uint32_t waitUs);
+void timerWaitUs(uint32_t waitUs);                //timerwait function for polling
+
+void timerWaitUs_irq(uint32_t us_wait);           //timerwait function for interrupt
 
 #endif

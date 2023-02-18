@@ -34,7 +34,14 @@ I2CSPM_Init_TypeDef I2C_Config = {
 
 void i2c_init()                         //initialise i2C
 {
+  CORE_DECLARE_IRQ_STATE;
+  CORE_ENTER_CRITICAL();
+
   I2CSPM_Init(&I2C_Config);
+
+  NVIC_EnableIRQ( I2C0_IRQn );
+  CORE_EXIT_CRITICAL();
+
  }
 
 
@@ -45,7 +52,7 @@ uint8_t cmd_data;                            //variable to data to write
 uint8_t read_data[2];                         //variable for read operation
 
 
-I2C_TransferReturn_TypeDef i2c_write()
+void i2c_write()
 {
   cmd_data = 0xF3;
 
@@ -54,13 +61,15 @@ I2C_TransferReturn_TypeDef i2c_write()
   transferSequence.buf[0].data = &cmd_data;        // pointer to data to write
   transferSequence.buf[0].len = sizeof(cmd_data);
 
-  transferStatus = I2CSPM_Transfer(I2C0, &transferSequence);
-
-  return transferStatus;
+  transferStatus = I2C_TransferInit (I2C0, &transferSequence);
+  if (transferStatus < 0)
+         {
+            //LOG_ERROR("%d", transferStatus);
+         }
 }
 
 
-I2C_TransferReturn_TypeDef i2c_read()
+void i2c_read()
 {
 
   transferSequence.addr = SI7021_DEVICE_ADDR << 1;          // shift device address left
@@ -68,59 +77,39 @@ I2C_TransferReturn_TypeDef i2c_read()
   transferSequence.buf[0].data = read_data;               // pointer to data to read
   transferSequence.buf[0].len = sizeof(read_data);
 
-  transferStatus = I2CSPM_Transfer(I2C0, &transferSequence);
-
-  return transferStatus;
+  transferStatus = I2C_TransferInit (I2C0, &transferSequence);
+  if (transferStatus < 0)
+  {
+    //LOG_ERROR("%d", transferStatus);
+   }
 }
 
 void i2cStop()                                        //stops i2c
 {
+  CORE_DECLARE_IRQ_STATE;
+  CORE_ENTER_CRITICAL();
+
     I2C_Reset(I2C0);                                  //Reseting I2C to the same state that it was in after a hardware reset
     I2C_Enable(I2C0,false);                           //Disabling I2C
     gpiosdaclear();                                   //Clearing SDA pin
     gpiosclclear();                                   //Clearing SCL pin
     CMU_ClockEnable(cmuClock_I2C0, false);            //Disabling I2C clock
+
+    NVIC_DisableIRQ( I2C0_IRQn );
+    CORE_EXIT_CRITICAL();
     return;
 }
 
 
-void i2cGetTemperature()
+
+void temperaturereading()
 {
-    uint16_t temperature;
+  uint16_t temperature;
     float temp_code;
 
-    i2c_init();                   //initialising i2C
-
-    gpioSi7021enable();           //enabling temperature sensor
-
-    timerWaitUs(80000);           // waits for 80ms to power up Si7021
-
-    transferStatus = i2c_write( ); //perform write operation
-
-    timerWaitUs(10800);           //wait for 10.8 ms for si7021 calculation
-
-
-    transferStatus = i2c_read();   //perform read operation
-
-        if (transferStatus != i2cTransferDone)                            //error condition for i2c fail
-        {
-             LOG_ERROR("I2CSPM_Transfer: I2C bus write of cmd=0x30 failed");
-         }
-
-        else
-        {
-            temperature= ((read_data[1]) | (read_data[0]<<8));          //performing temperature calculation
-            temp_code = (175.72 * (temperature/65536.0)) - 46.85;
-           LOG_INFO("Value of Si7021, temperature sensor is %d C\n\r",(int)temp_code);
-        }
-
-        if (transferStatus < 0)
-        {
-           LOG_ERROR("%d", transferStatus);
-        }
-
-        gpioSi7021disable();                   //disabling Si7021
-        i2cStop();                             //stop i2c transfer
+              temperature= ((read_data[1]) | (read_data[0]<<8));          //performing temperature calculation
+              temp_code = (175.72 * (temperature/65536.0)) - 46.85;
+              LOG_INFO("Value of Si7021, temperature sensor is %d C\n\r",(int)temp_code);
 
 }
 

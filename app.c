@@ -68,7 +68,7 @@
 // Include logging specifically for this .c file
 //#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
-
+#include "app.h"
 
 
 
@@ -231,7 +231,9 @@ SL_WEAK void app_process_action(void)
 
   myevent=getNextEvent();
 
-  switch(myevent)
+  state_machine(myevent);
+
+ /* switch(myevent)
   {
     case temperature_measure_event:
       i2cGetTemperature();
@@ -239,7 +241,7 @@ SL_WEAK void app_process_action(void)
     case wait_event:
       //do nothing
       break;
-  }
+  }*/
 
 
 } // app_process_action()
