@@ -26,9 +26,10 @@
 
 #define LED0_port  5 // change to correct ports and pins
 #define LED0_pin   4
+#define LCD_PORT gpioPortD
 #define LED1_port  5
 #define LED1_pin   5
-
+#define LCD_EXTCOMIN_PIN 13
 
 #define SCL_PIN 10
 #define SDA_PIN 11
@@ -48,6 +49,6 @@ void gpiosclclear();
 void gpioSi7021enable();
 void gpioSi7021disable();
 
-
+void gpioSetDisplayExtcomin(bool pin);
 
 #endif /* SRC_GPIO_H_ */

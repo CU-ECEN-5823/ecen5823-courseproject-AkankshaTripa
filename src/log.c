@@ -20,7 +20,7 @@
 #define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 
-
+#include "timers.h"
 
 /**
  * @return a timestamp value for the logger, typically based on a free running timer.

@@ -13,7 +13,7 @@
 #include "oscillators.h"
 #include "sl_i2cspm.h"
 #include "src/timers.h"
-
+#include "src/ble.h"
 
 #define SI7021_DEVICE_ADDR 0x40         //i2c slave address
 #define NO_HOLD_MASTER_MODE 0XF3         //Sequence to perform temp measurement and read back result
@@ -102,14 +102,16 @@ void i2cStop()                                        //stops i2c
 
 
 
-void temperaturereading()
+int temperaturereading()
 {
   uint16_t temperature;
-    float temp_code;
+  uint32_t temp_code;
 
               temperature= ((read_data[1]) | (read_data[0]<<8));          //performing temperature calculation
               temp_code = (175.72 * (temperature/65536.0)) - 46.85;
               LOG_INFO("Value of Si7021, temperature sensor is %d C\n\r",(int)temp_code);
+              server_indication(temp_code);
+              return temp_code;
 
 }
 

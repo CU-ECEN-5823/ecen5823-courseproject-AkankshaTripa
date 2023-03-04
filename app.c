@@ -40,6 +40,7 @@
 #include "gatt_db.h"
 #include "app.h"
 #include <em_letimer.h>
+#include "src/lcd.h"
 
 // *************************************************
 // Students: It is OK to modify this file.
@@ -57,6 +58,7 @@
 
 #include "src/i2c.h"
 #include "src/scheduler.h"
+#include "src/ble.h"
 
 // Students: Here is an example of how to correctly include logging functions in
 //           each .c file.
@@ -69,7 +71,6 @@
 //#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "app.h"
-
 
 
 // *************************************************
@@ -227,11 +228,11 @@ SL_WEAK void app_process_action(void)
   // gpioLed1SetOff();
 
 
-  uint32_t myevent;
+ /* uint32_t myevent;    //line 239-243 commented for A5
 
   myevent=getNextEvent();
 
-  state_machine(myevent);
+  state_machine(myevent);*/
 
  /* switch(myevent)
   {
@@ -266,15 +267,19 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
   // Just a trick to hide a compiler warning about unused input parameter evt.
   (void) evt;
 
+
+
   // For A5 onward:
   // Some events require responses from our application code,
   // and don’t necessarily advance our state machines.
   // For A5 uncomment the next 2 function calls
-  // handle_ble_event(evt); // put this code in ble.c/.h
+   handle_ble_event(evt); // put this code in ble.c/.h
 
   // sequence through states driven by events
-  // state_machine(evt);    // put this code in scheduler.c/.h
+   state_machine(evt);   // put this code in scheduler.c/.h
 
 
 } // sl_bt_on_event()
+
+
 

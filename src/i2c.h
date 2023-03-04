@@ -19,7 +19,7 @@ void i2cStop();
 //void i2cGetTemperature();           //used in A3
 
 //temperature measurement
-void temperaturereading();          //used in A4
+int temperaturereading();          //used in A4
 
 
 

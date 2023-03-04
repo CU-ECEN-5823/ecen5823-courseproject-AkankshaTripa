@@ -21,7 +21,7 @@ void LETIMER0_IRQHandler (void)
   //uint8_t GO_TO_SLEEP=1;
 
     uint32_t flags;
-    flags = LETIMER_IntGet(LETIMER0);               //determines source of irq
+    flags = LETIMER_IntGetEnabled(LETIMER0);               //determines source of irq
 
     LETIMER_IntClear(LETIMER0, flags);                     //clear source of irq
     CORE_DECLARE_IRQ_STATE;
@@ -35,7 +35,9 @@ void LETIMER0_IRQHandler (void)
 
     if( flags & LETIMER_IF_COMP1 )                          //checking COMP1 flag
      {
-        schedulerSetEventCOMP1();                           //event set for Comp1
+        schedulerSetEventCOMP1();
+
+        LETIMER_IntDisable(LETIMER0, LETIMER_IEN_COMP1);//event set for Comp1
      }
 
     CORE_EXIT_CRITICAL();                                  // NVIC IRQs are re-enabled

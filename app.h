@@ -49,9 +49,9 @@
 #define EM2 2
 #define EM3 3
 
-#define LOWEST_ENERGY_MODE EM3     //change VALUES for EM0/EM1/EM2/EM3
+#define LOWEST_ENERGY_MODE EM2    //change VALUES for EM0/EM1/EM2/EM3
 
-
+#include "sl_bt_api.h"
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
@@ -61,5 +61,7 @@ void app_init(void);
  * Application Process Action.
  *****************************************************************************/
 void app_process_action(void);
+
+//void handle_ble_event(evt);
 
 #endif // APP_H

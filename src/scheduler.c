@@ -11,6 +11,8 @@
 #include "timers.h"
 //#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
+#include "ble.h"
+
 
 // interrupt service routine for a peripheral
 // CPU+NVIC clear the IRQ pending bit in the NVIC
@@ -31,7 +33,9 @@ void schedulerSetEventUF()
 
   CORE_ENTER_CRITICAL();                          // NVIC IRQs are disabled
 
-  event |= eventuf;                               //RMW for event
+ // event |= eventuf;                               //RMW for event commented for A5
+
+  sl_bt_external_signal(eventuf);
 
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventUF()
@@ -48,7 +52,9 @@ void schedulerSetEventCOMP1()
 
   CORE_ENTER_CRITICAL();                          // NVIC IRQs are disabled
 
-  event |= eventcomp1;                               //RMW for event
+ // event |= eventcomp1;                               //RMW for event
+
+  sl_bt_external_signal(eventcomp1);
 
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventCOMP1()
@@ -64,16 +70,17 @@ void schedulerSetEventI2CDone()
   CORE_DECLARE_IRQ_STATE;
 
   CORE_ENTER_CRITICAL();                          // NVIC IRQs are disabled
+  sl_bt_external_signal(i2ccomplete);
 
-  event |= i2ccomplete;                               //RMW for event
+  //event |= i2ccomplete;                               //RMW for event
 
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventI2CDone()
 
 
-
+//comemnted below function as part of A5
 // scheduler routine to return 1 event to main()code and clear that event
-uint32_t getNextEvent()
+/*uint32_t getNextEvent()
 {
   uint32_t theEvent;
   // select 1 event to return to main() code, apply priorities etc.
@@ -113,24 +120,48 @@ uint32_t getNextEvent()
 
   return (theEvent);
  } // getNextEvent()
+*/
 
-
-void state_machine(uint32_t event)
+void state_machine(sl_bt_msg_t *evt)
 {
 
-   State_t currentState;
-   static State_t nextState = stateIdle;
-   currentState = nextState;
 
-  event_si7021 event_new=event;
+  //State_t currentState;
+  static State_t nextState = stateIdle;
+  //currentState = nextState;
 
-  switch(currentState)
+
+  ble_data_struct_t *bleDataPtr = getBleDataPtr();
+  if(SL_BT_MSG_ID(evt->header)!=sl_bt_evt_system_external_signal_id)
+    {
+      return;
+    }
+
+  if( (bleDataPtr->connection_open==false) && bleDataPtr->ok_to_send_htm_indications==false)
+    {
+      LOG_INFO("stateIdle disabling\n\r");
+   //   gpioSi7021disable();                                                //disabling Si7021
+      i2cStop();                                                          //stop i2c transfer
+      nextState=stateIdle;
+    }
+
+
+
+
+ // event_si7021 event_new=evt;
+  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true)
   {
-    case stateIdle:
+      switch(nextState)
+  {
+
+
+
+   case stateIdle:
       nextState = stateIdle;
-      if(event_new==eventuf)
+      LOG_INFO("stateIdle before if %d\n\r", evt->data.evt_system_external_signal.extsignals);
+      if(evt->data.evt_system_external_signal.extsignals ==eventuf)
         {
-          //LOG_INFO("stateIdle\n\r");
+          LOG_INFO("stateIdle\n\r");
           nextState=statetimerwait80;
           gpioSi7021enable();                           //enable temp sensor
           timerWaitUs_irq(80000);                       //wait for 80ms to powerup si7021
@@ -139,11 +170,12 @@ void state_machine(uint32_t event)
 
     case statetimerwait80:
       nextState=statetimerwait80;
-      if(event_new==eventcomp1)
+      LOG_INFO("statetimer wait before if %d\n\r", evt->data.evt_system_external_signal);
+      if(evt->data.evt_system_external_signal.extsignals==eventcomp1)
         {
-         // LOG_INFO("statetimerwait80\n\r");
+          LOG_INFO("statetimerwait80\n\r");
           i2c_init();                                                     //intilaise i2c transfer
-          sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);      //add power requirements for EM1 mode
+         sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);      //add power requirements for EM1 mode
           i2c_write();                                                    //perform i2c write
           nextState=statei2cwrite;
 
@@ -152,9 +184,9 @@ void state_machine(uint32_t event)
 
     case statei2cwrite:
       nextState=statei2cwrite;
-      if(event_new==i2ccomplete)
+      if(evt->data.evt_system_external_signal.extsignals==i2ccomplete)
         {
-         // LOG_INFO("statei2cwrite\n\r");
+          LOG_INFO("statei2cwrite\n\r");
           sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power for EM1
           timerWaitUs_irq(10800);                                             //wait for 10.8 ms for calculations
           nextState=statetimerwait108;
@@ -163,9 +195,9 @@ void state_machine(uint32_t event)
 
     case statetimerwait108:
         nextState=statetimerwait108;
-        if(event_new==eventcomp1)
+        if(evt->data.evt_system_external_signal.extsignals==eventcomp1)
         {
-          // LOG_INFO("statetimerwait108\n\r");
+           LOG_INFO("statetimerwait108\n\r");
            sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);          //add power req for read operation
            i2c_read();                                                         //perform read operation
            nextState=statei2cread;
@@ -174,12 +206,15 @@ void state_machine(uint32_t event)
 
     case statei2cread:
           nextState=statei2cread;
-            if(event_new==i2ccomplete)
+            if(evt->data.evt_system_external_signal.extsignals==i2ccomplete)
              {
-              //  LOG_INFO("statei2cread\n\r");
-                temperaturereading();
+               LOG_INFO("statei2cread\n\r");
+
+               // server_indication();
+               temperaturereading();
+
                 sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power req
-                gpioSi7021disable();                                                //disabling Si7021
+               // gpioSi7021disable();                                                //disabling Si7021
                 i2cStop();                                                          //stop i2c transfer
                 nextState=stateIdle;
               }
@@ -187,11 +222,12 @@ void state_machine(uint32_t event)
       break;
     default:
           {
-          //  LOG_INFO("Si7021, temperature sensor not working\n\r");
+            LOG_INFO("Si7021, temperature sensor not working\n\r");
           }
        }
 
   }
+}
 
 
 

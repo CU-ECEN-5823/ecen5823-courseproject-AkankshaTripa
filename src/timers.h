@@ -28,4 +28,6 @@ void timerWaitUs(uint32_t waitUs);                //timerwait function for polli
 
 void timerWaitUs_irq(uint32_t us_wait);           //timerwait function for interrupt
 
+uint32_t letimerMilliseconds();
+
 #endif

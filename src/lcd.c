@@ -63,7 +63,7 @@
 
 
 // Include logging specifically for this .c file
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 
 
@@ -254,6 +254,8 @@ void displayInit()
     //                     // for the LCD, on all the time now
 
 
+    void gpioSi7021enable();
+
 
     // Init the dot matrix display data structure
     display->dmdInitConfig = 0;
@@ -308,11 +310,11 @@ void displayInit()
     // Students: Figure out what parameters to pass in to sl_bt_system_set_soft_timer() to
     //           set up a 1 second repeating soft timer and uncomment the following lines
 
-	  //sl_status_t          timer_response;
-	  //timer_response = sl_bt_system_set_soft_timer();
-	  //if (timer_response != SL_STATUS_OK) {
-	  //    LOG_...
-    // }
+	  sl_status_t          timer_response;
+	  timer_response = sl_bt_system_set_soft_timer(32768, 2,0);
+	  if (timer_response != SL_STATUS_OK) {
+	      LOG_ERROR("NOT ABLE TO INITIALISE TIMER");
+    }
 
 
 
@@ -338,7 +340,7 @@ void displayUpdate()
 	//           the EXTCOMIN input to the LCD. Add that function to gpio.c./.h
 	//           Then uncomment the following line.
 	//
-	//gpioSetDisplayExtcomin(display->last_extcomin_state_high);
+	gpioSetDisplayExtcomin(display->last_extcomin_state_high);
 	
 } // displayUpdate()
 

@@ -93,3 +93,15 @@ void gpioSi7021disable()
   GPIO_PinOutClear(gpioPortD,I2C_TEMP_PIN);
 }
 
+
+void gpioSetDisplayExtcomin(bool pin)
+{
+    if(pin == true )
+    {
+        GPIO_PinOutSet(LCD_PORT, LCD_EXTCOMIN_PIN);
+    }
+    else
+    {
+        GPIO_PinOutClear(LCD_PORT, LCD_EXTCOMIN_PIN);
+    }
+}

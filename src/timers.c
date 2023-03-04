@@ -49,7 +49,7 @@ void initLETIMER0 ()
  LETIMER_IntClear (LETIMER0, 0xFFFFFFFF); // punch them all down
 
  // Set UF and COMP1 in LETIMER0_IEN, so that the timer will generate IRQs to the NVIC.
- temp = LETIMER_IEN_UF | LETIMER_IEN_COMP1;
+ temp = LETIMER_IEN_UF ;
  LETIMER_IntEnable (LETIMER0, temp); //  the ISR routine LETIMER0_IRQHandler() should be defined
 
  //Initializing COMP1 INTERRUPT

@@ -1,5 +1,9 @@
 #ifndef __SCHEDULER_H
 #define __SCHEDULER_H
+
+
+#include "sl_bt_api.h"
+
 // define anything a caller needs
 // function prototypes
 void schedulerSetEventI2CDone();
@@ -8,9 +12,9 @@ void schedulerSetEventUF();
 
 typedef enum uint32_t
 {
-  eventuf=0,            //event for temperature measurement
-  eventcomp1=1,
-  i2ccomplete=2,
+  eventuf=1,            //event for temperature measurement
+  eventcomp1=2,
+  i2ccomplete=4,
 
 }event_si7021;
 
@@ -28,5 +32,6 @@ uint32_t getNextEvent();                            //function to getNextEvent
 
 //void schedulerSetEventTemperatureMeasurement();     //function to set event temperature in A3
 
-void state_machine(uint32_t event);
+void state_machine(sl_bt_msg_t *evt);
+
 #endif  //__SCHEDULER_H
