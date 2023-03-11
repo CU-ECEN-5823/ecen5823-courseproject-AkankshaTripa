@@ -12,14 +12,47 @@
 //#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 #include "ble.h"
+#include "sl_bt_api.h"
+#include "sl_bgapi.h"
+#include "lcd.h"
 
 
 // interrupt service routine for a peripheral
 // CPU+NVIC clear the IRQ pending bit in the NVIC
 // when this routine is fetched from memory.
 
+// -----------------------------------------------
+// Private function, original from Dan Walkes. I fixed a sign extension bug.
+// We'll need this for Client A7 assignment to convert health thermometer
+// indications back to an integer. Convert IEEE-11073 32-bit float to signed integer.
+// -----------------------------------------------
+int32_t FLOAT_TO_INT32(const uint8_t *value_start_little_endian)
+{
+ uint8_t signByte = 0;
+ int32_t mantissa;
+ // input data format is:
+ // [0] = flags byte
+ // [3][2][1] = mantissa (2's complement)
+ // [4] = exponent (2's complement)
+ // BT value_start_little_endian[0] has the flags byte
+ int8_t exponent = (int8_t)value_start_little_endian[4];
+ // sign extend the mantissa value if the mantissa is negative
+ if (value_start_little_endian[3] & 0x80) { // msb of [3] is the sign of the mantissa
+ signByte = 0xFF;
+ }
+ mantissa = (int32_t) (value_start_little_endian[1] << 0) |
+ (value_start_little_endian[2] << 8) |
+ (value_start_little_endian[3] << 16) |
+ (signByte << 24) ;
+ // value = 10^exponent * mantissa, pow() returns a double type
+ return (int32_t) (pow(10, exponent) * mantissa);
+}
+// FLOAT_TO_INT32
+
+
 
 uint32_t event;
+#define TABLE_INDEX_INVALID           ((uint8_t)0xFFu)
 
 // scheduler routine to set a scheduler event
 void schedulerSetEventUF()
@@ -76,6 +109,7 @@ void schedulerSetEventI2CDone()
 
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventI2CDone()
+
 
 
 //comemnted below function as part of A5
@@ -137,19 +171,17 @@ void state_machine(sl_bt_msg_t *evt)
       return;
     }
 
-  if( (bleDataPtr->connection_open==false) && bleDataPtr->ok_to_send_htm_indications==false)
-    {
-      LOG_INFO("stateIdle disabling\n\r");
-   //   gpioSi7021disable();                                                //disabling Si7021
-      i2cStop();                                                          //stop i2c transfer
-      nextState=stateIdle;
-    }
-
-
+//  if( (bleDataPtr->connection_open==false) && bleDataPtr->ok_to_send_htm_indications==false)
+//    {
+//      LOG_INFO("stateIdle disabling\n\r");
+//   //   gpioSi7021disable();                                                //disabling Si7021
+//      i2cStop();                                                          //stop i2c transfer
+//      nextState=stateIdle;
+//    }
 
 
  // event_si7021 event_new=evt;
-  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true)
+  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true )
   {
       switch(nextState)
   {
@@ -226,6 +258,179 @@ void state_machine(sl_bt_msg_t *evt)
           }
        }
 
+  }
+}
+
+
+void discovery_state_machine(sl_bt_msg_t *evt)
+{
+
+ uint32_t client_evt = SL_BT_MSG_ID(evt->header);
+  uint8_t *TemperatureClient;
+  ble_data_struct_t *bleDataPtr = getBleDataPtr();
+
+  Client_t currentState;
+  static Client_t nextState = open;
+  currentState = nextState;
+  //uint16_t addr_value;
+ sl_status_t sc;
+
+  switch(currentState)
+  {
+    case ideal:
+      {
+        LOG_INFO("ideal\n\r");
+        if(client_evt == sl_bt_evt_scanner_scan_report_id){
+          nextState=open;
+        }
+
+      }
+      break;
+
+
+    case open :
+      {
+        nextState=open;
+        LOG_INFO("open started\n\r");
+        if(client_evt == sl_bt_evt_connection_opened_id)
+           {
+            LOG_INFO("open mid started\n\r");
+            bleDataPtr->connectionopenhandle =evt->data.evt_connection_opened.connection;
+
+            sc=sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionopenhandle ,
+                                                     sizeof(thermo_service),
+                                                     thermo_service
+                                                     );
+            if (sc != SL_STATUS_OK)
+              {
+                LOG_ERROR("sl_bt_gatt_discover_primary_services_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+              }
+
+             LOG_INFO("open\n\r");
+             nextState=  discovery;
+           }
+        else
+          {
+            if(client_evt == sl_bt_evt_connection_closed_id)
+              {
+                LOG_INFO("open closed else\n\r");
+                nextState=ideal;
+              }
+           }
+      }
+      LOG_INFO("open closed\n\r");
+      break;
+
+
+    case discovery :
+      {
+        nextState=discovery;
+        LOG_INFO("discovery started\n\r");
+        if(client_evt == sl_bt_evt_gatt_procedure_completed_id)
+        {
+          //  bleDataPtr.connectionopenhandle =evt->data.evt_connection_opened.connection;
+            LOG_INFO("discovery start inside if condition\n\r");
+           sc= sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionopenhandle,
+                                                        bleDataPtr->serviceHandle,
+                                                        sizeof(thermo_char),
+                                                        (const uint8_t*)thermo_char
+                                                        ) ;
+                                                                 // uint8_t connection,
+                                                                 //   uint32_t service,
+                                                                 //   size_t uuid_len,
+                                                                 //   const uint8_t* uuid
+           if (sc != SL_STATUS_OK)
+            {
+              LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+             }
+
+                  nextState=notify;
+        }
+        else{
+                 if(client_evt == sl_bt_evt_connection_closed_id)
+                 {
+                    nextState=ideal;
+                 }
+              }
+      }
+      LOG_INFO("discovery ended\n\r");
+
+      break;
+    case notify :
+      {
+        nextState=notify;
+        LOG_INFO("notify started\n\r");
+        if(client_evt == sl_bt_evt_gatt_procedure_completed_id)
+          {
+            LOG_INFO("notify state in\n\r");
+
+            sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionopenhandle,
+                                                   bleDataPtr->characteristicHandle,
+                                                    sl_bt_gatt_indication);
+                                                            //uint8_t connection,
+                                                        // uint16_t characteristic,
+                                                        // uint8_t flags
+            if (sc != SL_STATUS_OK)
+           {
+               LOG_ERROR("sl_bt_gatt_set_characteristic_notification() returned != 0 status=0x%04x", (unsigned int) sc);
+            }
+
+             nextState=confirmation;
+           }
+     else{
+
+            if(client_evt == sl_bt_evt_connection_closed_id)
+           {
+              nextState=ideal;
+            }
+         }
+      }
+      LOG_INFO("notify ended\n\r");
+      break;
+    case confirmation:
+      {
+        if(client_evt == sl_bt_evt_gatt_characteristic_value_id)
+          {
+                LOG_INFO("confirmation started\n\r");
+
+            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionopenhandle);
+
+           if (sc != SL_STATUS_OK)
+           {
+             LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+           }
+
+
+           uint8_t * client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
+           LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
+           uint32_t tempval = FLOAT_TO_INT32 (client_temperature);
+           LOG_INFO("Received Temperature = %d\r\n", (tempval/10000));
+
+           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (tempval/10000));
+
+                nextState=confirmation;
+           }
+          else{
+                 if(client_evt == sl_bt_evt_connection_closed_id)
+                  {
+                      nextState=ideal;
+                   }
+                  }
+
+         }
+         LOG_INFO("confirmation ended\n\r");
+     break;
+    case close :
+      {
+        LOG_INFO("close started\n\r");
+        nextState=close;
+        if(client_evt == sl_bt_evt_connection_closed_id)
+          {
+            nextState=ideal;
+           }
+      }
+      LOG_INFO("close ended\n\r");
+      break;
   }
 }
 

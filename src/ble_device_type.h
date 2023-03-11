@@ -28,7 +28,7 @@
  * Set to 1 to configure this build as a BLE server.
  * Set to 0 to configure as a BLE client
  */
-#define DEVICE_IS_BLE_SERVER 1
+#define DEVICE_IS_BLE_SERVER 0
 
 
 // Students:
@@ -36,7 +36,7 @@
 // set this #define to the bd_addr of the Gecko that will be your Server.
 // These values are from one of my Geckos, to serve as an example for you:
 //                   bd_addr  [0]   [1]   [2]   [3]   [4]   [5] <- array indices
-#define SERVER_BT_ADDRESS {{ 0x85, 0x61, 0x17, 0x57, 0x0b, 0x00 }}
+#define SERVER_BT_ADDRESS {{ 0xB1, 0x29, 0xEF, 0x57, 0x0b, 0x00 }}
 // This also can work:
 //#define SERVER_BT_ADDRESS (bd_addr) { .addr = { 0x85, 0x61, 0x17, 0x57, 0x0b, 0x00 } }
 

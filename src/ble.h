@@ -13,6 +13,12 @@
 
 #define UINT32_TO_FLOAT(m, e) (((uint32_t)(m) & 0x00FFFFFFU) | (uint32_t)((int32_t)(e) << 24))
 
+
+// Health Thermometer service UUID defined by Bluetooth SIG
+static const uint8_t thermo_service[2] = { 0x09, 0x18 };
+// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+static const uint8_t thermo_char[2] = { 0x1c, 0x2a };
+
 // BLE Data Structure, save all of our private BT data in here.
 // Modern C (circa 2021 does it this way)
 // typedef ble_data_struct_t is referred to as an anonymous struct definition
@@ -31,8 +37,15 @@ typedef struct {
  // bool indication;
   uint8_t connectionopenhandle;
 
+  uint32_t serviceHandle;
+  uint16_t characteristicHandle;
+  uint8_t discoveryEvt;
+
  // values unique for client
 } ble_data_struct_t;
+
+
+
 
 void server_indication(uint32_t temp);
 
