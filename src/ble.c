@@ -155,7 +155,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
            LOG_INFO("Started advertising first\n\r");
 
-           displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Discovering");
+           displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Advertising");
 
            break;
 
@@ -222,7 +222,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
            if(ble_data.connection_open==false)
              {
                       displayPrintf( DISPLAY_ROW_TEMPVALUE, "%s"," " );
-                      displayPrintf(DISPLAY_ROW_CONNECTION, "%s","Discovering");
+                      displayPrintf(DISPLAY_ROW_CONNECTION, "%s","Advertising");
 
              }
 
@@ -506,4 +506,3 @@ void server_indication(uint32_t temperature)
 
 
 }
-

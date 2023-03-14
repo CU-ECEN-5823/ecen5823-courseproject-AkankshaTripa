@@ -15,7 +15,7 @@
 #include "sl_bt_api.h"
 #include "sl_bgapi.h"
 #include "lcd.h"
-
+#include "math.h"
 
 // interrupt service routine for a peripheral
 // CPU+NVIC clear the IRQ pending bit in the NVIC
@@ -118,16 +118,12 @@ void schedulerSetEventI2CDone()
 {
   uint32_t theEvent;
   // select 1 event to return to main() code, apply priorities etc.
-
   //theEvent = waitevent;                                    // default event, does nothing
-
  // STEPS:
   // enter critical section
   // clear the event in your data structure, this has to be a read-modify-write
   // exit critical section
-
   CORE_DECLARE_IRQ_STATE;
-
   if((event & eventuf) == eventuf)
     {
       theEvent=eventuf;                             //event return to main function
@@ -135,7 +131,6 @@ void schedulerSetEventI2CDone()
       event=event & (eventuf^0xFFFFFFFF);           //clear event
       CORE_EXIT_CRITICAL();                                           // NVIC IRQs are re-enabled
     }
-
   if((event & eventcomp1) == eventcomp1)
       {
         theEvent=eventcomp1;                             //event return to main function
@@ -143,7 +138,6 @@ void schedulerSetEventI2CDone()
         event=event & (eventcomp1^0xFFFFFFFF);           //clear event
         CORE_EXIT_CRITICAL();                                           // NVIC IRQs are re-enabled
       }
-
   if((event & i2ccomplete) == i2ccomplete)
       {
         theEvent=i2ccomplete;                             //event return to main function
@@ -151,7 +145,6 @@ void schedulerSetEventI2CDone()
         event=event & (i2ccomplete^0xFFFFFFFF);           //clear event
         CORE_EXIT_CRITICAL();                                           // NVIC IRQs are re-enabled
       }
-
   return (theEvent);
  } // getNextEvent()
 */
@@ -265,8 +258,8 @@ void state_machine(sl_bt_msg_t *evt)
 void discovery_state_machine(sl_bt_msg_t *evt)
 {
 
- uint32_t client_evt = SL_BT_MSG_ID(evt->header);
-  uint8_t *TemperatureClient;
+ uint32_t event = SL_BT_MSG_ID(evt->header);
+  uint8_t * client_temperature;
   ble_data_struct_t *bleDataPtr = getBleDataPtr();
 
   Client_t currentState;
@@ -280,7 +273,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
     case ideal:
       {
         LOG_INFO("ideal\n\r");
-        if(client_evt == sl_bt_evt_scanner_scan_report_id){
+        if(event == sl_bt_evt_scanner_scan_report_id){
           nextState=open;
         }
 
@@ -292,7 +285,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       {
         nextState=open;
         LOG_INFO("open started\n\r");
-        if(client_evt == sl_bt_evt_connection_opened_id)
+        if(event == sl_bt_evt_connection_opened_id)
            {
             LOG_INFO("open mid started\n\r");
             bleDataPtr->connectionopenhandle =evt->data.evt_connection_opened.connection;
@@ -311,7 +304,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
            }
         else
           {
-            if(client_evt == sl_bt_evt_connection_closed_id)
+            if(event == sl_bt_evt_connection_closed_id)
               {
                 LOG_INFO("open closed else\n\r");
                 nextState=ideal;
@@ -326,7 +319,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       {
         nextState=discovery;
         LOG_INFO("discovery started\n\r");
-        if(client_evt == sl_bt_evt_gatt_procedure_completed_id)
+        if(event == sl_bt_evt_gatt_procedure_completed_id)
         {
           //  bleDataPtr.connectionopenhandle =evt->data.evt_connection_opened.connection;
             LOG_INFO("discovery start inside if condition\n\r");
@@ -347,7 +340,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
                   nextState=notify;
         }
         else{
-                 if(client_evt == sl_bt_evt_connection_closed_id)
+                 if(event == sl_bt_evt_connection_closed_id)
                  {
                     nextState=ideal;
                  }
@@ -360,7 +353,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       {
         nextState=notify;
         LOG_INFO("notify started\n\r");
-        if(client_evt == sl_bt_evt_gatt_procedure_completed_id)
+        if(event == sl_bt_evt_gatt_procedure_completed_id)
           {
             LOG_INFO("notify state in\n\r");
 
@@ -379,7 +372,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
            }
      else{
 
-            if(client_evt == sl_bt_evt_connection_closed_id)
+            if(event == sl_bt_evt_connection_closed_id)
            {
               nextState=ideal;
             }
@@ -389,7 +382,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       break;
     case confirmation:
       {
-        if(client_evt == sl_bt_evt_gatt_characteristic_value_id)
+        if(event == sl_bt_evt_gatt_characteristic_value_id)
           {
                 LOG_INFO("confirmation started\n\r");
 
@@ -401,17 +394,17 @@ void discovery_state_machine(sl_bt_msg_t *evt)
            }
 
 
-           uint8_t * client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
+            client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
            LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
-           uint32_t tempval = FLOAT_TO_INT32 (client_temperature);
-           LOG_INFO("Received Temperature = %d\r\n", (tempval/10000));
+           int32_t temp = FLOAT_TO_INT32 (client_temperature);
+           LOG_INFO("Received Temperature = %d\r\n", (temp));
 
-           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (tempval/10000));
+           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
 
                 nextState=confirmation;
            }
           else{
-                 if(client_evt == sl_bt_evt_connection_closed_id)
+                 if(event == sl_bt_evt_connection_closed_id)
                   {
                       nextState=ideal;
                    }
@@ -424,7 +417,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       {
         LOG_INFO("close started\n\r");
         nextState=close;
-        if(client_evt == sl_bt_evt_connection_closed_id)
+        if(event == sl_bt_evt_connection_closed_id)
           {
             nextState=ideal;
            }
@@ -433,7 +426,3 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       break;
   }
 }
-
-
-
-
