@@ -36,6 +36,8 @@
 
 #define I2C_TEMP_PIN 15
 
+#define PB0_port gpioPortF
+#define PB0_pin  6
 
 // Function prototypes
 void gpioInit();
@@ -50,5 +52,12 @@ void gpioSi7021enable();
 void gpioSi7021disable();
 
 void gpioSetDisplayExtcomin(bool pin);
+
+
+void button_enable();
+void disable_button_irq();
+
+
+
 
 #endif /* SRC_GPIO_H_ */

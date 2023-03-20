@@ -5,6 +5,7 @@
 #include "stdint.h"
 #include "sl_bgapi.h"
 #include "sl_bt_api.h"
+#define CAPACITY 16
 
 #define UINT8_TO_BITSTREAM(p, n) { *(p)++ = (uint8_t)(n); }
 
@@ -41,11 +42,27 @@ typedef struct {
   uint16_t characteristicHandle;
   uint8_t discoveryEvt;
 
+  int bonding_state;
+
  // values unique for client
 } ble_data_struct_t;
 
+typedef struct{
+  uint16_t charHandle;      /* Characteristic handle from GATTdb */
+  size_t   bufferLength;    /* Length of buffer in bytes to send */
+  uint8_t  buffer[5];       /* Actual buffer size. 5 bytes for htm and 2 for btn */
+}buffer_t;
+
+typedef struct
+{
+buffer_t Data[CAPACITY];          /* Buffer */
+uint8_t wptr;                    /* Write Location (where to write next) */
+uint8_t rptr;                    /* Read Location (where to read from next) */
+uint8_t isFull;                   /* Flag to indicate buffer full */
+}buff;
 
 
+void initialise_cbfifo(buff *cb);
 
 void server_indication(uint32_t temp);
 
@@ -54,5 +71,15 @@ void handle_ble_event(sl_bt_msg_t *evt);
 
 // function prototypes
 ble_data_struct_t* getBleDataPtr(void);
+
+
+
+/*******************CBFIFO*******************************************/
+
+int write_queue(buff* Cbfifo, buffer_t *buf);
+int read_queue(buff* Cbfifo, buffer_t *buf);
+size_t cbfifo_length(buff* Cbfifo);
+
+
 
 #endif //BLE_H

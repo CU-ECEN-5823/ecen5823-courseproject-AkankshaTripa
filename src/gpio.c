@@ -38,15 +38,17 @@ void gpioInit()
 
  //  GPIO_DriveStrengthSet(gpioPortC, gpioDriveStrengthStrongAlternateStrong);
 	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-	//GPIO_PinModeSet(gpioPortC, LED0_pin, gpioModePushPull, true);
+	GPIO_PinModeSet(gpioPortC, LED0_pin, gpioModePushPull, true);
 
 	GPIO_PinModeSet( gpioPortD, I2C_TEMP_PIN, gpioModePushPull, true );
 
 	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
 	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
-	//GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, true);
+	GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, true);
+	GPIO_PinModeSet(PB0_port, PB0_pin, gpioModeInput, true);
 
-
+	NVIC_ClearPendingIRQ(GPIO_EVEN_IRQn);
+	button_enable();
 
 } // gpioInit()
 
@@ -105,3 +107,17 @@ void gpioSetDisplayExtcomin(bool pin)
         GPIO_PinOutClear(LCD_PORT, LCD_EXTCOMIN_PIN);
     }
 }
+
+
+void button_enable()
+{
+  GPIO_ExtIntConfig(PB0_port, PB0_pin, PB0_pin, true, true, true);
+  NVIC_EnableIRQ(GPIO_EVEN_IRQn);
+}
+
+void disable_button_irq()
+{
+  NVIC_DisableIRQ(GPIO_EVEN_IRQn);
+}
+
+

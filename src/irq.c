@@ -11,6 +11,7 @@
 #include "scheduler.h"
 #include "i2c.h"
 
+//uint8_t button;
 
 void LETIMER0_IRQHandler (void)
 {
@@ -65,4 +66,33 @@ void I2C0_IRQHandler(void)
   CORE_ATOMIC_IRQ_ENABLE();
  }
 
+/*void GPIO_EVEN_IRQHandler()
+{
+  GPIO_IntClear(1 << PB0_pin);
 
+  if(GPIO_PinInGet(PB0_port, PB0_pin)==1)
+  {
+      button = 0x00;        //button release
+  }
+  else
+  {
+      button = 0x01;        //button press
+  }
+  schedulerSetEventCheckButtonStatus();
+}*/
+
+
+
+void GPIO_EVEN_IRQHandler()
+{
+  /* Check which IF is set */
+  uint32_t flags = GPIO_IntGetEnabled();
+  /* Clear the interrupt */
+  GPIO_IntClear(flags);
+  /* Set the button release event */
+  if(flags == (1 << PB0_pin))
+    {
+      schedulerSetEventCheckButtonStatus();
+    }
+
+}

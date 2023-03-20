@@ -9,7 +9,7 @@
 #include <sl_power_manager.h>
 #include "em_device.h"
 #include "timers.h"
-//#define INCLUDE_LOG_DEBUG 1
+#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 #include "ble.h"
 #include "sl_bt_api.h"
@@ -110,7 +110,18 @@ void schedulerSetEventI2CDone()
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventI2CDone()
 
+void schedulerSetEventCheckButtonStatus()
+{
+  //STEPS:
+  // enter critical section
+  // set the event in your data structure, this has to be a read-modify-write
+  // exit critical section
 
+   CORE_DECLARE_IRQ_STATE;
+   CORE_ENTER_CRITICAL();
+  sl_bt_external_signal(checkbutton);
+  CORE_EXIT_CRITICAL();
+}//schedulerSetEventCheckButtonStatus()
 
 //comemnted below function as part of A5
 // scheduler routine to return 1 event to main()code and clear that event

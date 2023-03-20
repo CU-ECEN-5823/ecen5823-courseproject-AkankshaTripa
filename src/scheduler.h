@@ -14,11 +14,14 @@ void schedulerSetEventOpenedConnection();
 void schedulerSetEventGattCompleted();
 void schedulerSetEventClosedEvent();
 
+void schedulerSetEventCheckButtonStatus();
+
 typedef enum uint32_t
 {
   eventuf=1,            //event for temperature measurement
   eventcomp1=2,
   i2ccomplete=4,
+  checkbutton=8
 
 }event_si7021;
 
