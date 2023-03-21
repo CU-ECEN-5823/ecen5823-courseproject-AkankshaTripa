@@ -29,40 +29,38 @@ typedef struct {
 
  // values unique for server
  // The advertising set handle allocated from Bluetooth stack.
- uint8_t advertisingSetHandle;
+ //uint8_t advertisingSetHandle;
 
-  bool connection_open; // true when in an open connection
-  bool ok_to_send_htm_indications; // true when client enabled indications
-  bool indication_in_flight; // true when an indication is in-flightt
+  bool connection_open;                  // true when in an open connection
+  bool ok_to_send_htm_indications;       // true when client enabled indications
+  bool indication_in_flight;              // true when an indication is in-flightt
 
  // bool indication;
-  uint8_t connectionopenhandle;
+  uint8_t connectionhandle;
+  bool button_enable;
 
   uint32_t serviceHandle;
   uint16_t characteristicHandle;
-  uint8_t discoveryEvt;
+  //uint8_t discoveryEvt;
 
-  int bonding_state;
+  int state;                         //1-pairing, 2-bonding 0-deleteBonding
 
  // values unique for client
 } ble_data_struct_t;
 
 typedef struct{
-  uint16_t charHandle;      /* Characteristic handle from GATTdb */
-  size_t   bufferLength;    /* Length of buffer in bytes to send */
-  uint8_t  buffer[5];       /* Actual buffer size. 5 bytes for htm and 2 for btn */
+  uint16_t charHandle;      // Characteristic handle
+  size_t   bufferLength;    // Length of buffer in bytes to send
+  uint8_t  buffer[5];       // Actual buffer size
 }buffer_t;
 
 typedef struct
 {
-buffer_t Data[CAPACITY];          /* Buffer */
-uint8_t wptr;                    /* Write Location (where to write next) */
-uint8_t rptr;                    /* Read Location (where to read from next) */
-uint8_t isFull;                   /* Flag to indicate buffer full */
+buffer_t Data[CAPACITY];          // Buffer
+uint8_t wptr;                    // Write pointer
+uint8_t rptr;                    // Read pointer
+uint8_t isFull;                   // Flag for checking full condition
 }buff;
-
-
-void initialise_cbfifo(buff *cb);
 
 void server_indication(uint32_t temp);
 
@@ -76,6 +74,8 @@ ble_data_struct_t* getBleDataPtr(void);
 
 /*******************CBFIFO*******************************************/
 
+void initialise_cbfifo(buff *cb);
+uint32_t nextPtr(uint32_t ptr);
 int write_queue(buff* Cbfifo, buffer_t *buf);
 int read_queue(buff* Cbfifo, buffer_t *buf);
 size_t cbfifo_length(buff* Cbfifo);

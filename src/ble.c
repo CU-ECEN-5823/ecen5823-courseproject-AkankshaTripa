@@ -22,15 +22,31 @@
 #include "src/gpio.h"
 #include "em_gpio.h"
 
-
+#define MIN_INTERVAL 60
+#define MAX_INTERVAL 60
+#define LATENCY 4
+#define TIMEOUT 660
+#define MIN_CE_LENGTH 0
+#define MAX_CE_LENGTH 0
 buffer_t bufferobj;
-
 buff queue;
+
+#define BONDING 2
+#define PAIRING 1
+#define DELETE 0
 
 // BLE private data
 ble_data_struct_t ble_data;
 #define SCAN_PASSIVE 0
 #define SECURITY_FLAG 0x0F
+
+#define MIN_ADVERTISING_INTERVAL 400
+#define MAX_ADVERTISING_INTERVAL 400
+#define DURATION 0
+#define MAX_EVENTS 0
+#define TIME 4096
+#define HANDLE 1
+#define SINGLE_SHOT 0
 
 // Parse advertisements looking for advertised Health Thermometer service
 uint8_t find_service_in_advertisement(uint8_t *data, uint8_t len)
@@ -74,6 +90,20 @@ void initialise_cbfifo(buff *cb)
   cb->isFull= 0;
 }
 
+uint32_t nextPtr(uint32_t ptr)
+{
+
+ //referred this function according to the pdf provided in class on Circular Buffer
+  if(ptr+1==CAPACITY)
+  {
+       return 0;  //wrapping back to 0
+  }
+  else
+  {
+    return ptr+1;
+  }
+} // nextPtr()
+
 int write_queue(buff* Cbfifo, buffer_t *buf)
 {
     if(buf == NULL || Cbfifo == NULL)
@@ -83,7 +113,7 @@ int write_queue(buff* Cbfifo, buffer_t *buf)
       return -1;
 
     Cbfifo->Data[Cbfifo->wptr] = *buf;
-    Cbfifo->wptr = (Cbfifo->wptr + 1) & (CAPACITY - 1);
+    Cbfifo->wptr=nextPtr( Cbfifo->wptr);
 
     if(Cbfifo->wptr == Cbfifo->rptr)            //checking for full condition
        Cbfifo->isFull = 1;
@@ -100,7 +130,7 @@ int read_queue(buff* Cbfifo, buffer_t *buf)
       return -1;
 
     *buf = Cbfifo->Data[Cbfifo->rptr];
-    Cbfifo->rptr = (Cbfifo->rptr + 1) & (CAPACITY - 1);
+     Cbfifo->rptr=nextPtr( Cbfifo->rptr);
 
     if(Cbfifo->isFull == 1)
       Cbfifo->isFull = 0;
@@ -206,10 +236,10 @@ void handle_ble_event(sl_bt_msg_t *evt)
            // Set advertising interval to 100ms.
            sc = sl_bt_advertiser_set_timing(
                            advertising_set_handle, // advertising set handle
-                           400, // min. adv. interval (milliseconds * 1.6)=250*1.6
-                           400, // max. adv. interval (milliseconds * 1.6)
-                           0,   // adv. duration
-                           0);  // max. num. adv. events
+                           MIN_ADVERTISING_INTERVAL, // min. adv. interval (milliseconds * 1.6)=250*1.6
+                           MAX_ADVERTISING_INTERVAL, // max. adv. interval (milliseconds * 1.6)
+                           DURATION,   // adv. duration
+                           MAX_EVENTS);  // max. num. adv. events
 
            if (sc != SL_STATUS_OK) {
                            LOG_ERROR("sl_bt_advertiser_set_timing() returned != 0 status=0x%04x", (unsigned int) sc);
@@ -230,21 +260,20 @@ void handle_ble_event(sl_bt_msg_t *evt)
            displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Advertising");
 
            //Added as part of A8
-           //added as a part of A8
 
-            sc = sl_bt_sm_configure(SECURITY_FLAG, sl_bt_sm_io_capability_displayyesno);       //Display with  Yes/No-buttons
+            sc = sl_bt_sm_configure(SECURITY_FLAG, sl_bt_sm_io_capability_displayyesno);                          //Configure security requirements and I/O capabilities of the system
             if (sc != SL_STATUS_OK) {
                             LOG_ERROR("sl_bt_sm_configure() returned != 0 status=0x%04x", (unsigned int) sc);
                             }
 
 
-           sc = sl_bt_sm_delete_bondings();
+           sc = sl_bt_sm_delete_bondings();                                                                       //Delete all bonding information
            if (sc != SL_STATUS_OK) {
                            LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x", (unsigned int) sc);
                            }
 
 
-          sc = sl_bt_system_set_soft_timer(4096, 1, 0);                              //uint32_t time,uint8_t handle, uint8_t single_shot
+          sc = sl_bt_system_set_soft_timer(TIME, HANDLE, SINGLE_SHOT);                                                          //uint32_t time,uint8_t handle, uint8_t single_shot
 
 
           if (sc != SL_STATUS_OK) {
@@ -266,7 +295,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
            sl_bt_advertiser_stop(advertising_set_handle);
 
-           ble_data.connectionopenhandle =evt->data.evt_connection_opened.connection;
+           ble_data.connectionhandle =evt->data.evt_connection_opened.connection;
            ble_data.connection_open=true;
 
            if(ble_data.connection_open==true)
@@ -275,13 +304,14 @@ void handle_ble_event(sl_bt_msg_t *evt)
                displayPrintf( DISPLAY_ROW_CONNECTION, "%s","Connected" );
              }
 
-           sl_bt_connection_set_parameters(ble_data.connectionopenhandle,
-                                           60,                     //60*1.25=75ms    //Time = Value x 1.25 ms
-                                           60,
-                                           4,         // 4 * 75ms intervals = 300ms for slave latency
-                                           660,
-                                           0,
-                                           0);      // timeout  =  ((1 + slave latency) * (connection_interval * 2))
+
+           sl_bt_connection_set_parameters(ble_data.connectionhandle,
+                                           MIN_INTERVAL,                     //60*1.25=75ms    //Time = Value x 1.25 ms
+                                           MAX_INTERVAL,
+                                           LATENCY,                          // 4 * 75ms intervals = 300ms for slave latency
+                                           TIMEOUT,
+                                           MIN_CE_LENGTH,
+                                           MAX_CE_LENGTH);                  // timeout  =  ((1 + slave latency) * (connection_interval * 2))
 
                                               /*uint8_t connection,
                                                  uint16_t min_interval,
@@ -333,6 +363,18 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
            LOG_INFO("Started advertising\n\r");
 
+                    //Added below lines as part of A8
+                     sc = sl_bt_sm_delete_bondings();
+
+                      if (sc != SL_STATUS_OK)
+                     {
+                        LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
+                      }
+
+                              ble_data.state = DELETE;        //DELETE BONDING
+                              gpioLed0SetOff();
+                              gpioLed1SetOff();
+
            break;
 
 
@@ -344,18 +386,6 @@ void handle_ble_event(sl_bt_msg_t *evt)
            LOG_INFO("TIMEOUT is %d\r", evt->data.evt_connection_parameters.timeout);
 
 
-           //Added below lines as part of A8
-           sc = sl_bt_sm_delete_bondings();
-
-                    if (sc != SL_STATUS_OK)
-                    {
-                        LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
-                     }
-
-                    ble_data.bonding_state = 0;
-
-                    gpioLed0SetOff();
-                    gpioLed1SetOff();
            break;
 
 
@@ -367,14 +397,14 @@ void handle_ble_event(sl_bt_msg_t *evt)
                {
                   LOG_INFO("external event called inside\r\n");
 
-                            if(ble_data.bonding_state == 1)
+                            if(ble_data.state == 1)
                               {
-                                LOG_INFO("Bonding state is set now\r\n");
 
                                 displayPrintf(DISPLAY_ROW_PASSKEY, " ");
                                 displayPrintf(DISPLAY_ROW_ACTION, " ");
 
-                                sc = sl_bt_sm_passkey_confirm(ble_data.connectionopenhandle, 1);
+                                //calling passkey confirmation after PB0 is pressed for confirmation
+                                sc = sl_bt_sm_passkey_confirm(ble_data.connectionhandle, 1);
 
                                 if (sc != SL_STATUS_OK)
                                 {
@@ -382,12 +412,11 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                   }
 
 
-                                   ble_data.bonding_state = 2;   //bonding
+                                   ble_data.state = BONDING;   //bonding
 
                               }
-                   // Status checking of PB0
 
-                     uint8_t  PB0_status = GPIO_PinInGet(PB0_port, PB0_pin);
+                     uint8_t  PB0_status = GPIO_PinInGet(PB0_port, PB0_pin);       // Status checking for PB0
 
 
                      if(PB0_status == 1)
@@ -400,7 +429,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                         displayPrintf(DISPLAY_ROW_9, "Button Pressed");           //PB0 connected to ground
                      }
 
-                      // Releasing and pressing or vice versa
+                      // Negating the status of PB0
                      PB0_status = !PB0_status;
 
 
@@ -422,18 +451,19 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
 
 
-                               // Send indications only if connection is established, client is bonded and indications are enabled
+                               // Send indications after bonding if connection is open, indications are enabled, connection handle is not equal to 0 and
+                                                                                                    //indication in flight is false
 
-                                 if( (ble_data.connection_open == true) &&  (ble_data.bonding_state == 2) && (ble_data.connectionopenhandle != 0)
+                                 if( (ble_data.button_enable == true) &&  (ble_data.state == BONDING) && (ble_data.connectionhandle != 0)
                                                                                                    && (ble_data.indication_in_flight == false) )
 
                                    {
                                        LOG_INFO("ERROR FROM EXTERNAL SEND INDICATION\r\n");
 
-                                        //   sc = sl_bt_gatt_server_send_indication(ble_data.connectionopenhandle,
-                                                                              //    gattdb_button_state,
-                                                                              //    1,
-                                                                              //    &PB0_status);
+                                          sc = sl_bt_gatt_server_send_indication(ble_data.connectionhandle,
+                                                                                  gattdb_button_state,
+                                                                                  1,
+                                                                                  &PB0_status);
 
                                            ble_data.indication_in_flight = true;
 
@@ -447,7 +477,9 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
                                    }
 
-                                  if ( (ble_data.connection_open == true) &&  (ble_data.bonding_state == 2) && ( ble_data.connectionopenhandle != 0)
+
+
+                                 else if ( (ble_data.button_enable == true) &&  (ble_data.state == BONDING) && ( ble_data.connectionhandle != 0)
                                                                                                 && (ble_data.indication_in_flight == true) )
 
                                   {
@@ -472,6 +504,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                LOG_INFO("client_config_flags  = %d\r", evt->data.evt_gatt_server_characteristic_status.client_config_flags);
                LOG_INFO("client_config  = %d\r", evt->data.evt_gatt_server_characteristic_status.client_config);
 
+               //TEMPERATURE CHARACTERISTICS
                if (evt->data.evt_gatt_server_characteristic_status.characteristic
                    == gattdb_temperature_measurement)
                {
@@ -483,53 +516,57 @@ void handle_ble_event(sl_bt_msg_t *evt)
                               break;
                             }
 
-                // Indications have been turned on
+
                            if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_client_config &&
-                                           evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)
+                                           evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)        //when indications are ON
                             {
-                                           /* Start reading temperature */
+                               LOG_INFO("**************LED ON ****************\n\r");
                                            ble_data.ok_to_send_htm_indications = true;
                                            gpioLed0SetOn();
                              }
-                            // Received confirmation from client
-                            if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_confirmation &&
-                                           evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)
+
+
+
+                           if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_confirmation &&
+                                    evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)         //when there is confirmation from client
+                           {
+                                          ble_data.indication_in_flight = false;
+                            }
+                           else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)                 //when indication are OFF
                              {
-                                           ble_data.indication_in_flight = false;
-                              }
-                                       // Indications have been turned off
-                             else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)
-                                         {
-                                             displayPrintf(DISPLAY_ROW_TEMPVALUE, " ");
-                                             ble_data.ok_to_send_htm_indications = false;
-                                             gpioLed0SetOff();
-                                         }
+                                            displayPrintf(DISPLAY_ROW_TEMPVALUE, " ");
+                                              ble_data.ok_to_send_htm_indications = false;
+                                              gpioLed0SetOff();
+
+                             }
+
                      }
-            else if (evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_button_state)
+
+
+             //BUTTON CHARACTERISTIC
+               else if (evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_button_state)
                 {
                       LOG_INFO("IN THE button CHARACTERISTIC\n\r");
 
-                                        // Indications for button state have been turned on
+
                            if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_client_config &&
-                                            evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)
+                                            evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)            //When indications are On
                            {
-                                            /* Read button state */
-                                            ble_data.connection_open = true;
+                                            ble_data.button_enable = true;
                                             gpioLed1SetOn();
                             }
-                                        /* Received confirmation from client */
-                            if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_confirmation &&
-                                            evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)
-                            {
-                                            ble_data.indication_in_flight = false;
-                            }
-                                        /* Indications have been turned off */
-                            else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)
-                           {
-                                              ble_data.connection_open = false;
-                                              gpioLed1SetOff();
-                            }
 
+
+                      if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_confirmation &&                       //when there is confirmation from client
+                                   evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)
+                          {
+                                    ble_data.indication_in_flight = false;
+                          }
+                      else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)                    // //when indication are OFF
+                           {
+                                           ble_data.button_enable = false;
+                                           gpioLed1SetOff();
+                             }
 
                 }
 
@@ -562,7 +599,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                     {
                       if((read_queue(&queue, &bufferobj)) == 0)
                         {
-                          LOG_INFO("Soft timer ID called\n\r");
+                              LOG_INFO("Soft timer ID called\n\r");
                                sc = sl_bt_gatt_server_write_attribute_value(
                                                                  bufferobj.charHandle,
                                                                  0,
@@ -579,7 +616,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                     LOG_ERROR("sl_bt_gatt_server_write_attribute_value() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
                                    }
 
-                              sc = sl_bt_gatt_server_send_indication(ble_data.connectionopenhandle,
+                                    sc = sl_bt_gatt_server_send_indication(ble_data.connectionhandle,
                                                                      bufferobj.charHandle,
                                                                      bufferobj.bufferLength,
                                                                      bufferobj.buffer);
@@ -602,45 +639,46 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
                break;
 
-   // Bonding Confirm Event
+    //Identifier of the confirm_bonding event
     case sl_bt_evt_sm_confirm_bonding_id:
-      LOG_INFO("In confirm bonding\n\r");
 
-                     /* Accept the bonding request from the client */
-                     sc = sl_bt_sm_bonding_confirm(ble_data.connectionopenhandle, 1);
+                     LOG_INFO("In confirm bonding\n\r");
+                     sc = sl_bt_sm_bonding_confirm(ble_data.connectionhandle, 1);                                         //Bonding request confirmation
                      if (sc != SL_STATUS_OK)
                        {
                          LOG_ERROR("sl_bt_sm_bonding_confirm() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
                        }
                      break;
 
-                     /* Bonding Failed. Error message logged */
+
 
     case sl_bt_evt_sm_bonding_failed_id:
 
-                     /* Log error if bonding failed */
-                     LOG_ERROR("Bonding request for connection %d failed, reason = %d\r\n", evt->data.evt_sm_bonding_failed.connection,
-                               evt->data.evt_sm_bonding_failed.reason);
+
+                     LOG_ERROR("BONDING REQUEST IS FAILED : CONNECTION HANDLE - %d\r\n REASON - %d\r\n",
+                                evt->data.evt_sm_bonding_failed.connection, evt->data.evt_sm_bonding_failed.reason);        //Bonding failed
+
                      break;
 
 
-                     /* Confirm passkey event. Wait for user-button press */
+
     case sl_bt_evt_sm_confirm_passkey_id:
 
-                     if(ble_data.connectionopenhandle == evt->data.evt_sm_confirm_passkey.connection)
+                     if(ble_data.connectionhandle == evt->data.evt_sm_confirm_passkey.connection)
                              {
-                               displayPrintf(DISPLAY_ROW_PASSKEY, "Passkey %d", evt->data.evt_sm_confirm_passkey.passkey);
+                               displayPrintf(DISPLAY_ROW_PASSKEY, "Passkey %d",
+                                              evt->data.evt_sm_confirm_passkey.passkey);
                                displayPrintf(DISPLAY_ROW_ACTION, "Confirm with PB0");
 
-                               /* Pairing in process */
-                               ble_data.bonding_state = 1;
+
+                               ble_data.state = PAIRING;        //PAIRING
                              }
                            break;
 
-      // Bonded with client
+
     case sl_bt_evt_sm_bonded_id:
-      LOG_INFO("Bonding is done\n\r");
-                       displayPrintf(DISPLAY_ROW_CONNECTION, "Bonded");
+                       LOG_INFO("Bonding is done\n\r");
+                       displayPrintf(DISPLAY_ROW_CONNECTION, "Bonded");                                                         //Bonding is done
                         break;
 
 
@@ -821,7 +859,7 @@ void server_indication(uint32_t temperature)
   {
 
             sc = sl_bt_gatt_server_send_indication(
-                                         bleDataPtr->connectionopenhandle,
+                                         bleDataPtr->connectionhandle,
                                          gattdb_temperature_measurement, // handle from gatt_db.h
                                          5,
                                          &htm_temperature_buffer[0] // in IEEE-11073 format

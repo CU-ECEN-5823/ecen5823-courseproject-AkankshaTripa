@@ -185,7 +185,7 @@ void state_machine(sl_bt_msg_t *evt)
 
 
  // event_si7021 event_new=evt;
-  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true )
+  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true)
   {
       switch(nextState)
   {
@@ -299,9 +299,9 @@ void discovery_state_machine(sl_bt_msg_t *evt)
         if(event == sl_bt_evt_connection_opened_id)
            {
             LOG_INFO("open mid started\n\r");
-            bleDataPtr->connectionopenhandle =evt->data.evt_connection_opened.connection;
+            bleDataPtr->connectionhandle =evt->data.evt_connection_opened.connection;
 
-            sc=sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionopenhandle ,
+            sc=sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionhandle ,
                                                      sizeof(thermo_service),
                                                      thermo_service
                                                      );
@@ -332,9 +332,9 @@ void discovery_state_machine(sl_bt_msg_t *evt)
         LOG_INFO("discovery started\n\r");
         if(event == sl_bt_evt_gatt_procedure_completed_id)
         {
-          //  bleDataPtr.connectionopenhandle =evt->data.evt_connection_opened.connection;
+          //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
             LOG_INFO("discovery start inside if condition\n\r");
-           sc= sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionopenhandle,
+           sc= sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionhandle,
                                                         bleDataPtr->serviceHandle,
                                                         sizeof(thermo_char),
                                                         (const uint8_t*)thermo_char
@@ -368,7 +368,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
           {
             LOG_INFO("notify state in\n\r");
 
-            sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionopenhandle,
+            sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
                                                    bleDataPtr->characteristicHandle,
                                                     sl_bt_gatt_indication);
                                                             //uint8_t connection,
@@ -397,7 +397,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
           {
                 LOG_INFO("confirmation started\n\r");
 
-            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionopenhandle);
+            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
 
            if (sc != SL_STATUS_OK)
            {
