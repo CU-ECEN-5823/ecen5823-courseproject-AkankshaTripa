@@ -15,7 +15,7 @@
 #include "sl_bt_api.h"
 #include "sl_bt_api_compatibility.h"
 #include "i2c.h"
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "src/lcd.h"
 #include "ble_device_type.h"
@@ -34,6 +34,7 @@ buff queue;
 #define BONDING 2
 #define PAIRING 1
 #define DELETE 0
+#define CHECK_BUTTON_EVENT 8
 
 // BLE private data
 ble_data_struct_t ble_data;
@@ -81,7 +82,7 @@ ble_data_struct_t* getBleDataPtr() {
 
 /****************************************************************************/
 
-#if DEVICE_IS_BLE_SERVER
+#if (DEVICE_IS_BLE_SERVER==1)
 
 void initialise_cbfifo(buff *cb)
 {
@@ -113,7 +114,7 @@ int write_queue(buff* Cbfifo, buffer_t *buf)
       return -1;
 
     Cbfifo->Data[Cbfifo->wptr] = *buf;
-    Cbfifo->wptr=nextPtr( Cbfifo->wptr);
+    Cbfifo->wptr=nextPtr(Cbfifo->wptr);
 
     if(Cbfifo->wptr == Cbfifo->rptr)            //checking for full condition
        Cbfifo->isFull = 1;
@@ -130,7 +131,7 @@ int read_queue(buff* Cbfifo, buffer_t *buf)
       return -1;
 
     *buf = Cbfifo->Data[Cbfifo->rptr];
-     Cbfifo->rptr=nextPtr( Cbfifo->rptr);
+     Cbfifo->rptr=nextPtr(Cbfifo->rptr);
 
     if(Cbfifo->isFull == 1)
       Cbfifo->isFull = 0;
@@ -141,7 +142,7 @@ int read_queue(buff* Cbfifo, buffer_t *buf)
 size_t cbfifo_length(buff* Cbfifo)
 {
   if(Cbfifo->isFull == 0)
-      return ((Cbfifo->wptr - Cbfifo->rptr) & (CAPACITY - 1));
+      return (Cbfifo->wptr - Cbfifo->rptr);
 
   else return 1;
 }
@@ -393,7 +394,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
    case sl_bt_evt_system_external_signal_id:
 
               LOG_INFO("external event called\r\n");
-              if(evt->data.evt_system_external_signal.extsignals == 8)
+              if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT)
                {
                   LOG_INFO("external event called inside\r\n");
 
@@ -454,7 +455,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                // Send indications after bonding if connection is open, indications are enabled, connection handle is not equal to 0 and
                                                                                                     //indication in flight is false
 
-                                 if( (ble_data.button_enable == true) &&  (ble_data.state == BONDING) && (ble_data.connectionhandle != 0)
+                                 if( (ble_data.connection_open == true) &&  (ble_data.state == BONDING) && (ble_data.connectionhandle != 0)
                                                                                                    && (ble_data.indication_in_flight == false) )
 
                                    {
@@ -479,7 +480,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
 
 
-                                 else if ( (ble_data.button_enable == true) &&  (ble_data.state == BONDING) && ( ble_data.connectionhandle != 0)
+                                 else if ( (ble_data.connection_open == true) &&  (ble_data.state == BONDING) && ( ble_data.connectionhandle != 0)
                                                                                                 && (ble_data.indication_in_flight == true) )
 
                                   {

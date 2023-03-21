@@ -9,7 +9,7 @@
 #include <sl_power_manager.h>
 #include "em_device.h"
 #include "timers.h"
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 #include "ble.h"
 #include "sl_bt_api.h"
