@@ -21,6 +21,7 @@
 #include "ble_device_type.h"
 #include "src/gpio.h"
 #include "em_gpio.h"
+#include "math.h"
 
 #define MIN_INTERVAL 60
 #define MAX_INTERVAL 60
@@ -52,6 +53,38 @@ ble_data_struct_t ble_data;
 #define TIME 4096
 #define HANDLE 1
 #define SINGLE_SHOT 0
+
+// interrupt service routine for a peripheral
+// CPU+NVIC clear the IRQ pending bit in the NVIC
+// when this routine is fetched from memory.
+
+// -----------------------------------------------
+// Private function, original from Dan Walkes. I fixed a sign extension bug.
+// We'll need this for Client A7 assignment to convert health thermometer
+// indications back to an integer. Convert IEEE-11073 32-bit float to signed integer.
+// -----------------------------------------------
+int32_t FLOAT_TO_INT32(const uint8_t *value_start_little_endian)
+{
+ uint8_t signByte = 0;
+ int32_t mantissa;
+ // input data format is:
+ // [0] = flags byte
+ // [3][2][1] = mantissa (2's complement)
+ // [4] = exponent (2's complement)
+ // BT value_start_little_endian[0] has the flags byte
+ int8_t exponent = (int8_t)value_start_little_endian[4];
+ // sign extend the mantissa value if the mantissa is negative
+ if (value_start_little_endian[3] & 0x80) { // msb of [3] is the sign of the mantissa
+ signByte = 0xFF;
+ }
+ mantissa = (int32_t) (value_start_little_endian[1] << 0) |
+ (value_start_little_endian[2] << 8) |
+ (value_start_little_endian[3] << 16) |
+ (signByte << 24) ;
+ // value = 10^exponent * mantissa, pow() returns a double type
+ return (int32_t) (pow(10, exponent) * mantissa);
+}
+// FLOAT_TO_INT32
 
 // Parse advertisements looking for advertised Health Thermometer service
 uint8_t find_service_in_advertisement(uint8_t *data, uint8_t len)
@@ -490,7 +523,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                // Send indications after bonding if connection is open, indications are enabled, connection handle is not equal to 0 and
                                                                                                     //indication in flight is false
 
-                                 if( (ble_data.connection_open == true) &&  (ble_data.state == BONDING) && (ble_data.connectionhandle != 0)
+                                 if( ( ble_data.button_enable == 1) &&  (ble_data.state == BONDING) && (ble_data.connectionhandle != 0)
                                                                                                    && (ble_data.indication_in_flight == false) )
 
                                    {
@@ -515,7 +548,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
 
 
-                                 else if ( (ble_data.connection_open == true) &&  (ble_data.state == BONDING) && ( ble_data.connectionhandle != 0)
+                                 else if ( ( ble_data.button_enable == 1) &&  (ble_data.state == BONDING) && ( ble_data.connectionhandle != 0)
                                                                                                 && (ble_data.indication_in_flight == true) )
 
                                   {
@@ -588,7 +621,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                            if( evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_client_config &&
                                             evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)            //When indications are On
                            {
-                                            ble_data.button_enable = true;
+                                            ble_data.button_enable = 1;
                                             gpioLed1SetOn();
                             }
 
@@ -600,7 +633,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                           }
                       else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)                    // //when indication are OFF
                            {
-                                           ble_data.button_enable = false;
+                                           ble_data.button_enable =0;
                                            gpioLed1SetOff();
                              }
 
@@ -872,7 +905,43 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
     case sl_bt_evt_gatt_characteristic_value_id:
       {
-       // displayPrintf( DISPLAY_ROW_CONNECTION,"%s", "Handling Indications" );
+        displayPrintf( DISPLAY_ROW_CONNECTION,"%s", "Handling Indications" );
+        if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
+                    evt->data.evt_gatt_characteristic_value.characteristic ==ble_data.characteristicHandle[0])
+                               {
+                                 sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
+                                 if (sc != SL_STATUS_OK)
+                                   {
+                                     LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                                   }
+                                 uint8_t * client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
+                                LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
+                                int32_t temp = FLOAT_TO_INT32 (client_temperature);
+                                LOG_INFO("Received Temperature = %d\r\n", (temp));
+                                displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
+                               }
+                 /* If it is an indication or a read response for btn state, display it */
+                      if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication ||
+                                    evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response) &&
+                                     evt->data.evt_gatt_characteristic_value.characteristic == ble_data.characteristicHandle[1])
+                               {
+                                 /* Send confirmation only if it is an indication */
+                                 if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
+                                   {
+                                     LOG_INFO("entering confirmation button\n\r");
+                                     sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
+                                     if (sc != SL_STATUS_OK)
+                                       {
+                                         LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                                       }
+                                   }
+                                 uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
+                                 if(client_btn_state == 1)
+                                     displayPrintf(DISPLAY_ROW_9, "Button Pressed");
+                                 else if(client_btn_state == 0)
+                                   displayPrintf(DISPLAY_ROW_9, "Button Released");
+                                 LOG_INFO("Button State = %s\r\n", client_btn_state ? "Button Pressed" : "Button Released");
+                               }
       }
       break;
 
@@ -926,7 +995,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                         }
                     }
                   /* PB0 Button is pressed, toggle indications */
-                  else if(GPIO_PinInGet(gpioPortF, PB0_pin) == 0)
+                  else if(GPIO_PinInGet(gpioPortF, PB0_pin) == 0)            //0-release
                     {
                       /* Flip indications for the Btn_State Characteristic */
                       ble_data.button_enable ^= 2; // Second bit is flipped to turn on/off indications

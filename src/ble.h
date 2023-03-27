@@ -26,6 +26,8 @@ static const uint8_t Pushbutton_service[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x6
 static const uint8_t Pushbutton_characteristics[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
                                            0x3e, 0x43, 0xc8, 0x38, 0x02, 0x00, 0x00, 0x00};
 
+
+
 // BLE Data Structure, save all of our private BT data in here.
 // Modern C (circa 2021 does it this way)
 // typedef ble_data_struct_t is referred to as an anonymous struct definition
@@ -43,7 +45,7 @@ typedef struct {
 
  // bool indication;
   uint8_t connectionhandle;
-  bool button_enable;
+  uint8_t button_enable;
 
   uint32_t serviceHandle[2];
   uint16_t characteristicHandle[2];

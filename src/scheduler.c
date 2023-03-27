@@ -17,37 +17,7 @@
 #include "lcd.h"
 #include "math.h"
 
-// interrupt service routine for a peripheral
-// CPU+NVIC clear the IRQ pending bit in the NVIC
-// when this routine is fetched from memory.
 
-// -----------------------------------------------
-// Private function, original from Dan Walkes. I fixed a sign extension bug.
-// We'll need this for Client A7 assignment to convert health thermometer
-// indications back to an integer. Convert IEEE-11073 32-bit float to signed integer.
-// -----------------------------------------------
-int32_t FLOAT_TO_INT32(const uint8_t *value_start_little_endian)
-{
- uint8_t signByte = 0;
- int32_t mantissa;
- // input data format is:
- // [0] = flags byte
- // [3][2][1] = mantissa (2's complement)
- // [4] = exponent (2's complement)
- // BT value_start_little_endian[0] has the flags byte
- int8_t exponent = (int8_t)value_start_little_endian[4];
- // sign extend the mantissa value if the mantissa is negative
- if (value_start_little_endian[3] & 0x80) { // msb of [3] is the sign of the mantissa
- signByte = 0xFF;
- }
- mantissa = (int32_t) (value_start_little_endian[1] << 0) |
- (value_start_little_endian[2] << 8) |
- (value_start_little_endian[3] << 16) |
- (signByte << 24) ;
- // value = 10^exponent * mantissa, pow() returns a double type
- return (int32_t) (pow(10, exponent) * mantissa);
-}
-// FLOAT_TO_INT32
 
 
 
@@ -504,10 +474,10 @@ void discovery_state_machine(sl_bt_msg_t *evt)
     case confirmation:
       {
         LOG_INFO("entering confirmation\n\r");
-        if(event == sl_bt_evt_gatt_characteristic_value_id)
+       if(event == sl_bt_evt_gatt_characteristic_value_id)
           {
-            LOG_INFO("entering confirmation event\n\r");
-            /* Check if the att_opcode and gatt characteristic handle match */
+           /* LOG_INFO("entering confirmation event\n\r");
+            // Check if the att_opcode and gatt characteristic handle match
                if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
                evt->data.evt_gatt_characteristic_value.characteristic ==bleDataPtr->characteristicHandle[0])
                           {
@@ -522,12 +492,12 @@ void discovery_state_machine(sl_bt_msg_t *evt)
                            LOG_INFO("Received Temperature = %d\r\n", (temp));
                            displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
                           }
-            /* If it is an indication or a read response for btn state, display it */
+            // If it is an indication or a read response for btn state, display it
                  if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication ||
                                evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response) &&
                                 evt->data.evt_gatt_characteristic_value.characteristic == bleDataPtr->characteristicHandle[1])
                           {
-                            /* Send confirmation only if it is an indication */
+                            // Send confirmation only if it is an indication
                             if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
                               {
                                 LOG_INFO("entering confirmation button\n\r");
@@ -543,7 +513,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
                             else if(client_btn_state == 0)
                               displayPrintf(DISPLAY_ROW_9, "Button Released");
                             LOG_INFO("Button State = %s\r\n", client_btn_state ? "Button Pressed" : "Button Released");
-                          }
+                          }*/
 
             nextState=close;
            }
