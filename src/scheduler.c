@@ -9,7 +9,7 @@
 #include <sl_power_manager.h>
 #include "em_device.h"
 #include "timers.h"
-//#define INCLUDE_LOG_DEBUG 1
+#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 #include "ble.h"
 #include "sl_bt_api.h"
@@ -110,7 +110,7 @@ void schedulerSetEventI2CDone()
   CORE_EXIT_CRITICAL();                           // NVIC IRQs are re-enabled
 } // schedulerSetEventI2CDone()
 
-void schedulerSetEventCheckButtonStatus()
+void schedulerSetEventCheckButtonStatusPB0()
 {
   //STEPS:
   // enter critical section
@@ -119,9 +119,22 @@ void schedulerSetEventCheckButtonStatus()
 
    CORE_DECLARE_IRQ_STATE;
    CORE_ENTER_CRITICAL();
-  sl_bt_external_signal(checkbutton);
+  sl_bt_external_signal(checkbuttonPB0);
   CORE_EXIT_CRITICAL();
 }//schedulerSetEventCheckButtonStatus()
+
+void schedulerSetEventCheckButtonStatusPB1()
+{
+  //STEPS:
+    // enter critical section
+    // set the event in your data structure, this has to be a read-modify-write
+    // exit critical section
+
+     CORE_DECLARE_IRQ_STATE;
+     CORE_ENTER_CRITICAL();
+    sl_bt_external_signal(checkbuttonPB1);
+    CORE_EXIT_CRITICAL();
+}
 
 //comemnted below function as part of A5
 // scheduler routine to return 1 event to main()code and clear that event
@@ -274,7 +287,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
   ble_data_struct_t *bleDataPtr = getBleDataPtr();
 
   Client_t currentState;
-  static Client_t nextState = open;
+  static Client_t nextState = open_first;
   currentState = nextState;
   //uint16_t addr_value;
  sl_status_t sc;
@@ -285,16 +298,16 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       {
         LOG_INFO("ideal\n\r");
         if(event == sl_bt_evt_scanner_scan_report_id){
-          nextState=open;
+          nextState=open_first;
         }
 
       }
       break;
 
 
-    case open :
+    case open_first :
       {
-        nextState=open;
+        nextState=open_first;
         LOG_INFO("open started\n\r");
         if(event == sl_bt_evt_connection_opened_id)
            {
@@ -311,7 +324,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
               }
 
              LOG_INFO("open\n\r");
-             nextState=  discovery;
+             nextState=  open_second;
            }
         else
           {
@@ -325,20 +338,44 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       LOG_INFO("open closed\n\r");
       break;
 
+    case open_second:
+            nextState=open_second;
+            LOG_INFO("discovery started\n\r");
+            if(event == sl_bt_evt_gatt_procedure_completed_id)
+              {
+                sc = sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionhandle,
+                                                                  sizeof(Pushbutton_service),
+                                                                  Pushbutton_service);
+                 if (sc != SL_STATUS_OK)
+                 {
+                    LOG_ERROR("sl_bt_gatt_discover_primary_services_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                 }
 
-    case discovery :
+                 nextState=  discovery_first;
+              }
+            else
+                {
+                   if(event == sl_bt_evt_connection_closed_id)
+                     {
+                            LOG_INFO("open closed else\n\r");
+                            nextState=ideal;
+                       }
+                  }
+      break;
+
+    case discovery_first :
       {
-        nextState=discovery;
-        LOG_INFO("discovery started\n\r");
+        nextState=discovery_first;
+        LOG_INFO("discovery first started\n\r");
         if(event == sl_bt_evt_gatt_procedure_completed_id)
         {
           //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
             LOG_INFO("discovery start inside if condition\n\r");
            sc= sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionhandle,
-                                                        bleDataPtr->serviceHandle,
-                                                        sizeof(thermo_char),
-                                                        (const uint8_t*)thermo_char
-                                                        ) ;
+                                                           bleDataPtr->serviceHandle[0],
+                                                           sizeof(thermo_char),
+                                                           (const uint8_t*)thermo_char
+                                                            ) ;
                                                                  // uint8_t connection,
                                                                  //   uint32_t service,
                                                                  //   size_t uuid_len,
@@ -348,7 +385,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
               LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
              }
 
-                  nextState=notify;
+                  nextState=discovery_second;
         }
         else{
                  if(event == sl_bt_evt_connection_closed_id)
@@ -360,26 +397,65 @@ void discovery_state_machine(sl_bt_msg_t *evt)
       LOG_INFO("discovery ended\n\r");
 
       break;
-    case notify :
+
+    case discovery_second :
+         {
+           nextState=discovery_second;
+           LOG_INFO("discovery second started\n\r");
+           if(event == sl_bt_evt_gatt_procedure_completed_id)
+           {
+             //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+               LOG_INFO("discovery start inside if condition\n\r");
+              sc= sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionhandle,
+                                                           bleDataPtr->serviceHandle[1],
+                                                           sizeof(Pushbutton_characteristics),
+                                                           (const uint8_t*)Pushbutton_characteristics
+                                                           ) ;
+                                                                    // uint8_t connection,
+                                                                    //   uint32_t service,
+                                                                    //   size_t uuid_len,
+                                                                    //   const uint8_t* uuid
+              if (sc != SL_STATUS_OK)
+               {
+                 LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                }
+
+                     nextState=notify_first;
+           }
+           else{
+                    if(event == sl_bt_evt_connection_closed_id)
+                    {
+                       nextState=ideal;
+                    }
+                 }
+         }
+         LOG_INFO("discovery second ended\n\r");
+
+         break;
+
+    case notify_first :
       {
-        nextState=notify;
-        LOG_INFO("notify started\n\r");
+        nextState=notify_first;
+        LOG_INFO("notify first started\n\r");
         if(event == sl_bt_evt_gatt_procedure_completed_id)
           {
             LOG_INFO("notify state in\n\r");
 
             sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
-                                                   bleDataPtr->characteristicHandle,
-                                                    sl_bt_gatt_indication);
+                                                           bleDataPtr->characteristicHandle[0],
+                                                           sl_bt_gatt_indication);
                                                             //uint8_t connection,
                                                         // uint16_t characteristic,
                                                         // uint8_t flags
+
+            displayPrintf(DISPLAY_ROW_CONNECTION, "Handling Indications");
+
             if (sc != SL_STATUS_OK)
            {
                LOG_ERROR("sl_bt_gatt_set_characteristic_notification() returned != 0 status=0x%04x", (unsigned int) sc);
             }
 
-             nextState=confirmation;
+             nextState=notify_second;
            }
      else{
 
@@ -389,30 +465,87 @@ void discovery_state_machine(sl_bt_msg_t *evt)
             }
          }
       }
-      LOG_INFO("notify ended\n\r");
+      LOG_INFO("notify first ended\n\r");
       break;
+
+    case notify_second :
+          {
+            nextState=notify_second;
+            LOG_INFO("notify first started\n\r");
+            if(event == sl_bt_evt_gatt_procedure_completed_id)
+              {
+                LOG_INFO("notify state in\n\r");
+
+                sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
+                                                               bleDataPtr->characteristicHandle[1],
+                                                               sl_bt_gatt_indication);
+                                                                //uint8_t connection,
+                                                            // uint16_t characteristic,
+                                                            // uint8_t flags
+                if (sc != SL_STATUS_OK)
+               {
+                   LOG_ERROR("sl_bt_gatt_set_characteristic_notification() returned != 0 status=0x%04x", (unsigned int) sc);
+                }
+
+                 nextState=confirmation;
+               }
+         else{
+
+                if(event == sl_bt_evt_connection_closed_id)
+               {
+                  nextState=ideal;
+                }
+             }
+          }
+          LOG_INFO("notify first ended\n\r");
+          break;
+
+
     case confirmation:
       {
+        LOG_INFO("entering confirmation\n\r");
         if(event == sl_bt_evt_gatt_characteristic_value_id)
           {
-                LOG_INFO("confirmation started\n\r");
+            LOG_INFO("entering confirmation event\n\r");
+            /* Check if the att_opcode and gatt characteristic handle match */
+               if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
+               evt->data.evt_gatt_characteristic_value.characteristic ==bleDataPtr->characteristicHandle[0])
+                          {
+                            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
+                            if (sc != SL_STATUS_OK)
+                              {
+                                LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                              }
+                           client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
+                           LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
+                           int32_t temp = FLOAT_TO_INT32 (client_temperature);
+                           LOG_INFO("Received Temperature = %d\r\n", (temp));
+                           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
+                          }
+            /* If it is an indication or a read response for btn state, display it */
+                 if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication ||
+                               evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response) &&
+                                evt->data.evt_gatt_characteristic_value.characteristic == bleDataPtr->characteristicHandle[1])
+                          {
+                            /* Send confirmation only if it is an indication */
+                            if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
+                              {
+                                LOG_INFO("entering confirmation button\n\r");
+                                sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
+                                if (sc != SL_STATUS_OK)
+                                  {
+                                    LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                                  }
+                              }
+                            uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
+                            if(client_btn_state == 1)
+                                displayPrintf(DISPLAY_ROW_9, "Button Pressed");
+                            else if(client_btn_state == 0)
+                              displayPrintf(DISPLAY_ROW_9, "Button Released");
+                            LOG_INFO("Button State = %s\r\n", client_btn_state ? "Button Pressed" : "Button Released");
+                          }
 
-            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
-
-           if (sc != SL_STATUS_OK)
-           {
-             LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
-           }
-
-
-            client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
-           LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
-           int32_t temp = FLOAT_TO_INT32 (client_temperature);
-           LOG_INFO("Received Temperature = %d\r\n", (temp));
-
-           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
-
-                nextState=confirmation;
+            nextState=close;
            }
           else{
                  if(event == sl_bt_evt_connection_closed_id)

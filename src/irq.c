@@ -85,14 +85,32 @@ void I2C0_IRQHandler(void)
 
 void GPIO_EVEN_IRQHandler()
 {
-  /* Check which IF is set */
+
   uint32_t flags = GPIO_IntGetEnabled();
-  /* Clear the interrupt */
+
   GPIO_IntClear(flags);
-  /* Set the button release event */
+
+  // Set the button release event
   if(flags == (1 << PB0_pin))
     {
-      schedulerSetEventCheckButtonStatus();
+      schedulerSetEventCheckButtonStatusPB0();
     }
 
 }
+
+void GPIO_ODD_IRQHandler()
+{
+
+  uint32_t flags = GPIO_IntGetEnabled();
+
+
+  GPIO_IntClear(flags);
+
+  // Set the button release event
+  if(flags == (1 << PB1_pin))
+    {
+      schedulerSetEventCheckButtonStatusPB1();
+    }
+
+}
+

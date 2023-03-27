@@ -15,7 +15,7 @@
 #include "sl_bt_api.h"
 #include "sl_bt_api_compatibility.h"
 #include "i2c.h"
-//#define INCLUDE_LOG_DEBUG 1
+#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "src/lcd.h"
 #include "ble_device_type.h"
@@ -34,12 +34,16 @@ buff queue;
 #define BONDING 2
 #define PAIRING 1
 #define DELETE 0
-#define CHECK_BUTTON_EVENT 8
+#define CHECK_BUTTON_EVENT_PB0 8
+#define CHECK_BUTTON_EVENT_PB1 16
 
 // BLE private data
 ble_data_struct_t ble_data;
 #define SCAN_PASSIVE 0
 #define SECURITY_FLAG 0x0F
+
+#define CHARACTERISTIC 1
+#define SERVICE 0
 
 #define MIN_ADVERTISING_INTERVAL 400
 #define MAX_ADVERTISING_INTERVAL 400
@@ -146,7 +150,42 @@ size_t cbfifo_length(buff* Cbfifo)
 
   else return 1;
 }
+
+#else
+
+static uint8_t UUID_Compare(sl_bt_msg_t *evt, uint8_t evttype)
+{
+  //Get the address from the macro and save it
+  uint8_t check_uuid = 0;
+
+  // Check each address byte
+  for(int i = 0; i < 16; i++)
+    {
+      if(evttype == SERVICE)
+        {
+          if(evt->data.evt_gatt_service.uuid.data[i] == Pushbutton_service[i])
+          {
+            check_uuid++;
+          }
+        }
+      else if(evttype == CHARACTERISTIC)
+        {
+          if(evt->data.evt_gatt_characteristic.uuid.data[i] == Pushbutton_characteristics[i])
+          {
+            check_uuid++;
+          }
+        }
+    }
+
+  if(check_uuid == 16)          //address matching done
+    {
+      return 1;
+    }
+
+  return 0;                   //match failure
+}
 #endif
+
 
 /**************************************************************************//**
  * Bluetooth stack event handler.
@@ -185,22 +224,20 @@ void handle_ble_event(sl_bt_msg_t *evt)
      //                   evt->data.evt_system_boot.patch,
      //                   evt->data.evt_system_boot.build);
 
-           displayInit();
-
-           displayPrintf(DISPLAY_ROW_NAME, "%s", "Server");
-
-           displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A8");
-
-           // Extract unique ID from BT Address.
+            // Extract unique ID from BT Address.
            sc = sl_bt_system_get_identity_address(&address, &address_type);
 
            if (sc != SL_STATUS_OK) {
                   LOG_ERROR("sl_bt_system_get_identity_address() returned != 0 status=0x%04x", (unsigned int) sc);
                   }
 
-           displayPrintf( DISPLAY_ROW_BTADDR, "%X:%X:%X:%X:%X:%X",
-                  address.addr[ 0 ],  address.addr[ 1 ],  address.addr[ 2 ],
-           address.addr[ 3 ],  address.addr[ 4 ], address.addr[ 5 ] );
+            displayInit();
+            displayPrintf(DISPLAY_ROW_NAME, "%s", "Server");
+            displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A8");
+            displayPrintf( DISPLAY_ROW_BTADDR, "%X:%X:%X:%X:%X:%X",
+                          address.addr[ 0 ],  address.addr[ 1 ],  address.addr[ 2 ],
+                          address.addr[ 3 ],  address.addr[ 4 ], address.addr[ 5 ] );
+            displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Advertising");
 
 
            if (sc != SL_STATUS_OK) {
@@ -257,8 +294,6 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
 
            LOG_INFO("Started advertising first\n\r");
-
-           displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Advertising");
 
            //Added as part of A8
 
@@ -394,11 +429,11 @@ void handle_ble_event(sl_bt_msg_t *evt)
    case sl_bt_evt_system_external_signal_id:
 
               LOG_INFO("external event called\r\n");
-              if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT)
+              if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB0)
                {
                   LOG_INFO("external event called inside\r\n");
 
-                            if(ble_data.state == 1)
+                            if(ble_data.state == PAIRING)
                               {
 
                                 displayPrintf(DISPLAY_ROW_PASSKEY, " ");
@@ -688,12 +723,15 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
     case sl_bt_evt_system_boot_id :
       {
+        gpioLed0SetOff();
+        gpioLed1SetOff();
+
         LOG_INFO("boot ID\n\r");
         displayInit();
 
         displayPrintf(DISPLAY_ROW_NAME, "%s", "Client");
 
-        displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A8");
+        displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A9");
 
          // Extract unique ID from BT Address.
 
@@ -713,7 +751,22 @@ void handle_ble_event(sl_bt_msg_t *evt)
       sl_bt_scanner_set_timing(sl_bt_gap_1m_phy,80,40);     //50/0.625          //25/.625
       sl_bt_connection_set_default_parameters(60,60,4,660,0,4);                                       //75/1.25,
       sl_bt_scanner_start(sl_bt_gap_1m_phy, sl_bt_scanner_discover_generic);
+
+      //Added as part of A9
+
+      sc = sl_bt_sm_configure(SECURITY_FLAG, sl_bt_sm_io_capability_displayyesno);                          //Configure security requirements and I/O capabilities of the system
+      if (sc != SL_STATUS_OK) {
+                      LOG_ERROR("sl_bt_sm_configure() returned != 0 status=0x%04x", (unsigned int) sc);
+                      }
+
+
+     sc = sl_bt_sm_delete_bondings();                                                                       //Delete all bonding information
+     if (sc != SL_STATUS_OK) {
+                     LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x", (unsigned int) sc);
+                     }
       }
+
+
 
      break;
     case sl_bt_evt_scanner_scan_report_id :
@@ -763,12 +816,12 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
       break;
 
-    case sl_bt_evt_gatt_procedure_completed_id :
-      {
-        LOG_INFO("GATT completed\n\r");
-
-      }
-      break;
+//    case sl_bt_evt_gatt_procedure_completed_id :
+//      {
+//        LOG_INFO("GATT completed\n\r");
+//
+//      }
+//      break;
     case sl_bt_evt_gatt_service_id :
 
       LOG_INFO("gatt service\n\r");
@@ -776,34 +829,50 @@ void handle_ble_event(sl_bt_msg_t *evt)
          evt->data.evt_gatt_service.uuid.data[1] == thermo_service[1])
                                                                                       //memcmp(evt->data.evt_gatt_service.uuid.data,thermo_service,2) == 0)
       {
-               ble_data.serviceHandle = evt->data.evt_gatt_service.service;
+               ble_data.serviceHandle[0] = evt->data.evt_gatt_service.service;
        }
+      else if(UUID_Compare(evt, SERVICE))
+                      ble_data.serviceHandle[1] = evt->data.evt_gatt_service.service;
       break;
 
     case sl_bt_evt_gatt_characteristic_id :
       /* Save the newly discovered characteristics' handle */
-      if(evt->data.evt_gatt_characteristic.uuid.data[0] == thermo_char[0] &&
-         evt->data.evt_gatt_characteristic.uuid.data[1] == thermo_char[1])
+      if(evt->data.evt_gatt_characteristic.uuid.data[0] == thermo_char[0] && evt->data.evt_gatt_characteristic.uuid.data[1] == thermo_char[1])
                                                                                           // memcmp(evt->data.evt_gatt_characteristic.uuid.data,thermo_char,2) == 0)
          {
-                  ble_data.characteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+                  ble_data.characteristicHandle[0] = evt->data.evt_gatt_characteristic.characteristic;
          }
+       else if( UUID_Compare(evt, CHARACTERISTIC) )
+         {
+                      ble_data.characteristicHandle[1] = evt->data.evt_gatt_characteristic.characteristic;
+         }
+
             break;
 
 
     case sl_bt_evt_connection_closed_id :
       {
-        sl_bt_scanner_start(sl_bt_gap_1m_phy, sl_bt_scanner_discover_generic);
+        LOG_INFO("Connection Closed\n\r");
+        sl_bt_scanner_start(sl_bt_gap_1m_phy, sl_bt_scanner_discover_generic);                               //(uint8_t scanning_phy, uint8_t discover_mode);
 
-                                                                                    //(uint8_t scanning_phy, uint8_t discover_mode);
+        displayPrintf(DISPLAY_ROW_TEMPVALUE, " ");
+        displayPrintf(DISPLAY_ROW_BTADDR2, " ");
+        displayPrintf(DISPLAY_ROW_9, " ");
         displayPrintf(DISPLAY_ROW_CONNECTION,"%s", "Discovering");
+
+        sc = sl_bt_sm_delete_bondings();                                                                       //Delete all bonding information
+        if (sc != SL_STATUS_OK) {
+                        LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x", (unsigned int) sc);
+                        }
+
+        ble_data.state = DELETE;        //DELETE BONDING
 
       }
       break;
 
     case sl_bt_evt_gatt_characteristic_value_id:
       {
-        displayPrintf( DISPLAY_ROW_CONNECTION,"%s", "Handling Indications" );
+       // displayPrintf( DISPLAY_ROW_CONNECTION,"%s", "Handling Indications" );
       }
       break;
 
@@ -813,6 +882,106 @@ void handle_ble_event(sl_bt_msg_t *evt)
             displayUpdate();
          }
       break;
+
+      //below event cases as part of A9
+
+    case sl_bt_evt_gatt_procedure_completed_id:
+             // CLIENT
+             /* Check which GATT procedure was completed */
+             /* If Discover Services by UUID was completed, check return status and set evtGattComplete */
+             if(evt->data.evt_gatt_procedure_completed.result == 0)
+               {
+                 /* Set the GATT completed event */
+                // ble_data.discoveryEvt = GATT_COMPLETE;
+               }
+             else
+               {
+                 LOG_ERROR("sl_bt_evt_gatt_procedure_completed_id() returned != 0 status=0x%04x\r\n",
+                            (unsigned int) evt->data.evt_gatt_procedure_completed.result);
+                 /* Increase the security level and initiate passkey bonding */
+                 if(evt->data.evt_gatt_procedure_completed.result == ((sl_status_t) SL_STATUS_BT_ATT_INSUFFICIENT_ENCRYPTION))
+                   {
+                     sc = sl_bt_sm_increase_security(ble_data.connectionhandle);
+                     if (sc != SL_STATUS_OK)
+                       {
+                         LOG_ERROR("sl_bt_sm_increase_security() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
+                       }
+                   }
+               }
+             break;
+
+             /* Button Press Event */
+      case sl_bt_evt_system_external_signal_id:
+              if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB1)
+                {
+                  LOG_INFO("check button PB1\n\r");
+                  /* PB0 is not pressed, send a read characteristic value */
+                  if(GPIO_PinInGet(gpioPortF, PB0_pin) == 1)
+                    {
+                      LOG_INFO("PB0 pressed\n\r");
+                      sc = sl_bt_gatt_read_characteristic_value(ble_data.connectionhandle, ble_data.characteristicHandle[1]);
+                      if (sc != SL_STATUS_OK)
+                        {
+                          LOG_ERROR("sl_bt_gatt_read_characteristic_value() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
+                        }
+                    }
+                  /* PB0 Button is pressed, toggle indications */
+                  else if(GPIO_PinInGet(gpioPortF, PB0_pin) == 0)
+                    {
+                      /* Flip indications for the Btn_State Characteristic */
+                      ble_data.button_enable ^= 2; // Second bit is flipped to turn on/off indications
+                      sc = sl_bt_gatt_set_characteristic_notification(ble_data.connectionhandle,
+                                                                      ble_data.characteristicHandle[1],
+                                                                      ble_data.button_enable);
+                      if (sc != SL_STATUS_OK)
+                        {
+                          LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                        }
+                    }
+                }
+              else if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB0)
+                {
+                  LOG_INFO("check button PB0\n\r");
+                  /* Pairing request received */
+                  if(ble_data.state == PAIRING)
+                    {
+                      LOG_INFO("PAIRING IN PPROGRESS\n\r");
+                      displayPrintf(DISPLAY_ROW_PASSKEY, " ");
+                      displayPrintf(DISPLAY_ROW_ACTION, " ");
+
+                      sc = sl_bt_sm_passkey_confirm(ble_data.connectionhandle, 1);
+                      if (sc != SL_STATUS_OK)
+                        {
+                          LOG_ERROR("sl_bt_sm_passkey_confirm() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
+                        }
+                      else ble_data.state = BONDING;
+                    }
+                }
+              break;
+
+      case sl_bt_evt_sm_bonding_failed_id:
+              ble_data.state = DELETE;
+
+              LOG_ERROR("Bonding request for connection %d failed, reason = %d\r\n", evt->data.evt_sm_bonding_failed.connection,
+                        evt->data.evt_sm_bonding_failed.reason);
+              break;
+
+      case sl_bt_evt_sm_confirm_passkey_id:
+
+              if(ble_data.connectionhandle == evt->data.evt_sm_confirm_passkey.connection)
+                {
+                  displayPrintf(DISPLAY_ROW_PASSKEY, "Passkey %d", evt->data.evt_sm_confirm_passkey.passkey);
+                  displayPrintf(DISPLAY_ROW_ACTION, "Confirm with PB0");
+
+                  ble_data.state = PAIRING;
+                }
+              break;
+
+      case sl_bt_evt_sm_bonded_id:
+
+              displayPrintf(DISPLAY_ROW_CONNECTION, "Bonded");
+              break;
+
 
     default:
       {

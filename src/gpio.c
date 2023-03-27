@@ -51,8 +51,10 @@ void gpioInit()
 	GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
 
 	GPIO_PinModeSet(PB0_port, PB0_pin, gpioModeInput, true);
+	GPIO_PinModeSet(PB1_port, PB1_pin, gpioModeInput, true);
 
 	NVIC_ClearPendingIRQ(GPIO_EVEN_IRQn);
+  NVIC_ClearPendingIRQ(GPIO_ODD_IRQn);
 	button_enable();
 
 } // gpioInit()
@@ -116,13 +118,16 @@ void gpioSetDisplayExtcomin(bool pin)
 
 void button_enable()
 {
-  GPIO_ExtIntConfig(PB0_port, PB0_pin, PB0_pin, true, true, true);
+  GPIO_ExtIntConfig(PB0_port, PB0_pin, PB0_pin, true, true, true);              //added as part of A8
+  GPIO_ExtIntConfig(PB1_port, PB1_pin, PB1_pin, true, true, true);             //added for A9
   NVIC_EnableIRQ(GPIO_EVEN_IRQn);
+  NVIC_EnableIRQ(GPIO_ODD_IRQn);
 }
 
 void disable_button_irq()
 {
   NVIC_DisableIRQ(GPIO_EVEN_IRQn);
+  NVIC_DisableIRQ(GPIO_ODD_IRQn);
 }
 
 

@@ -145,7 +145,7 @@
     <informativeText/>
     
     <!--ECEN5823 Encrypted Button State-->
-    <characteristic const="false" id="button_state" name="ECEN5823 Encrypted Button State" sourceId="00000002-38c8-433e-87ec-652a2d136289" uuid="ad590d50-46e5-4726-bd23-a0752d385fa5">
+    <characteristic const="false" id="button_state" name="ECEN5823 Encrypted Button State" sourceId="" uuid="00000002-38c8-433e-87ec-652a2d136289">
       <informativeText/>
       <value length="1" type="hex" variable_length="false">00</value>
       <properties>

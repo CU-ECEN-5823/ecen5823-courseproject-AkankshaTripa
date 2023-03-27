@@ -11,4 +11,7 @@ void I2C0_IRQHandler(void);
 
 void GPIO_EVEN_IRQHandler();
 
+void GPIO_EVEN_IRQHandler();
+void GPIO_ODD_IRQHandler();
+
 #endif

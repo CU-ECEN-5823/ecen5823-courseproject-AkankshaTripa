@@ -14,14 +14,16 @@ void schedulerSetEventOpenedConnection();
 void schedulerSetEventGattCompleted();
 void schedulerSetEventClosedEvent();
 
-void schedulerSetEventCheckButtonStatus();
+void schedulerSetEventCheckButtonStatusPB0();
+void schedulerSetEventCheckButtonStatusPB1();
 
 typedef enum uint32_t
 {
   eventuf=1,            //event for temperature measurement
   eventcomp1=2,
   i2ccomplete=4,
-  checkbutton=8
+  checkbuttonPB0=8,
+  checkbuttonPB1=16
 
 }event_si7021;
 
@@ -38,9 +40,12 @@ typedef enum
 typedef enum
 {
  ideal,
- open,
- discovery,
- notify,
+ open_first,
+ open_second,
+ discovery_first,
+ discovery_second,
+ notify_first,
+ notify_second,
  confirmation,
  close
 }Client_t;
