@@ -15,7 +15,7 @@
 #include "sl_bt_api.h"
 #include "sl_bt_api_compatibility.h"
 #include "i2c.h"
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "src/lcd.h"
 #include "ble_device_type.h"
@@ -186,22 +186,22 @@ size_t cbfifo_length(buff* Cbfifo)
 
 #else
 
-static uint8_t UUID_Compare(sl_bt_msg_t *evt, uint8_t evttype)
+static uint8_t UUID_Compare(sl_bt_msg_t *evt, uint8_t event_type)
 {
-  //Get the address from the macro and save it
-  uint8_t check_uuid = 0;
 
-  // Check each address byte
-  for(int i = 0; i < 16; i++)
+  uint8_t check_uuid = 0;                                      //counter for checking uuid
+
+  for(int i = 0; i < 16; i++)                                 // Check each address byte
     {
-      if(evttype == SERVICE)
+      if(event_type == SERVICE)
         {
           if(evt->data.evt_gatt_service.uuid.data[i] == Pushbutton_service[i])
           {
             check_uuid++;
           }
         }
-      else if(evttype == CHARACTERISTIC)
+
+      else if(event_type == CHARACTERISTIC)
         {
           if(evt->data.evt_gatt_characteristic.uuid.data[i] == Pushbutton_characteristics[i])
           {
@@ -266,7 +266,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
             displayInit();
             displayPrintf(DISPLAY_ROW_NAME, "%s", "Server");
-            displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A8");
+            displayPrintf(DISPLAY_ROW_ASSIGNMENT, "%s", "A9");
             displayPrintf( DISPLAY_ROW_BTADDR, "%X:%X:%X:%X:%X:%X",
                           address.addr[ 0 ],  address.addr[ 1 ],  address.addr[ 2 ],
                           address.addr[ 3 ],  address.addr[ 4 ], address.addr[ 5 ] );
@@ -633,6 +633,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                           }
                       else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)                    // //when indication are OFF
                            {
+                          LOG_INFO("IN THE button CHARACTERISTIC  GATT DISABLE\n\r");
                                            ble_data.button_enable =0;
                                            gpioLed1SetOff();
                              }
@@ -849,29 +850,50 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
       break;
 
-//    case sl_bt_evt_gatt_procedure_completed_id :
-//      {
-//        LOG_INFO("GATT completed\n\r");
-//
-//      }
-//      break;
+    case sl_bt_evt_gatt_procedure_completed_id:
+
+
+               if(evt->data.evt_gatt_procedure_completed.result == 0)
+                 {
+                 //do nothing for gatt procedure completed
+                 }
+               else
+                 {
+
+                   LOG_ERROR("sl_bt_evt_gatt_procedure_completed_id() returned != 0 status=0x%04x\r\n",
+                              (unsigned int) evt->data.evt_gatt_procedure_completed.result);                                 //increase security in this case
+
+
+                     if(evt->data.evt_gatt_procedure_completed.result == ((sl_status_t) SL_STATUS_BT_ATT_INSUFFICIENT_ENCRYPTION))
+                     {
+                       sc = sl_bt_sm_increase_security(ble_data.connectionhandle);
+                       if (sc != SL_STATUS_OK)
+                         {
+                           LOG_ERROR("sl_bt_sm_increase_security() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
+                         }
+                      }
+                 }
+               break;
+
     case sl_bt_evt_gatt_service_id :
 
       LOG_INFO("gatt service\n\r");
       if(evt->data.evt_gatt_service.uuid.data[0] == thermo_service[0] &&
-         evt->data.evt_gatt_service.uuid.data[1] == thermo_service[1])
-                                                                                      //memcmp(evt->data.evt_gatt_service.uuid.data,thermo_service,2) == 0)
+         evt->data.evt_gatt_service.uuid.data[1] == thermo_service[1])                                    //memcmp(evt->data.evt_gatt_service.uuid.data,thermo_service,2) == 0)
       {
                ble_data.serviceHandle[0] = evt->data.evt_gatt_service.service;
        }
       else if(UUID_Compare(evt, SERVICE))
+        {
                       ble_data.serviceHandle[1] = evt->data.evt_gatt_service.service;
+        }
+
       break;
 
     case sl_bt_evt_gatt_characteristic_id :
-      /* Save the newly discovered characteristics' handle */
-      if(evt->data.evt_gatt_characteristic.uuid.data[0] == thermo_char[0] && evt->data.evt_gatt_characteristic.uuid.data[1] == thermo_char[1])
-                                                                                          // memcmp(evt->data.evt_gatt_characteristic.uuid.data,thermo_char,2) == 0)
+
+
+      if(evt->data.evt_gatt_characteristic.uuid.data[0] == thermo_char[0] && evt->data.evt_gatt_characteristic.uuid.data[1] == thermo_char[1])                // memcmp(evt->data.evt_gatt_characteristic.uuid.data,thermo_char,2) == 0)
          {
                   ble_data.characteristicHandle[0] = evt->data.evt_gatt_characteristic.characteristic;
          }
@@ -898,17 +920,18 @@ void handle_ble_event(sl_bt_msg_t *evt)
                         LOG_ERROR("sl_bt_sm_delete_bondings() returned != 0 status=0x%04x", (unsigned int) sc);
                         }
 
-        ble_data.state = DELETE;        //DELETE BONDING
+        ble_data.state = DELETE;                                                                             //DELETE BONDING
 
       }
       break;
 
     case sl_bt_evt_gatt_characteristic_value_id:
       {
-        displayPrintf( DISPLAY_ROW_CONNECTION,"%s", "Handling Indications" );
+
+
         if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
                     evt->data.evt_gatt_characteristic_value.characteristic ==ble_data.characteristicHandle[0])
-                               {
+         {
                                  sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
                                  if (sc != SL_STATUS_OK)
                                    {
@@ -919,14 +942,14 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                 int32_t temp = FLOAT_TO_INT32 (client_temperature);
                                 LOG_INFO("Received Temperature = %d\r\n", (temp));
                                 displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
-                               }
-                 /* If it is an indication or a read response for btn state, display it */
-                      if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication ||
-                                    evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response) &&
-                                     evt->data.evt_gatt_characteristic_value.characteristic == ble_data.characteristicHandle[1])
-                               {
-                                 /* Send confirmation only if it is an indication */
-                                 if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
+            }
+
+         if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication || evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response)
+                            &&  evt->data.evt_gatt_characteristic_value.characteristic == ble_data.characteristicHandle[1])                  // //  If it is an indication for button state
+
+                         {
+
+                                 if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)                    // If it is an indication then only send confirmation
                                    {
                                      LOG_INFO("entering confirmation button\n\r");
                                      sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
@@ -935,13 +958,18 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                          LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
                                        }
                                    }
+
                                  uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
+
                                  if(client_btn_state == 1)
+                                   {
                                      displayPrintf(DISPLAY_ROW_9, "Button Pressed");
+                                   }
                                  else if(client_btn_state == 0)
-                                   displayPrintf(DISPLAY_ROW_9, "Button Released");
-                                 LOG_INFO("Button State = %s\r\n", client_btn_state ? "Button Pressed" : "Button Released");
-                               }
+                                   {
+                                      displayPrintf(DISPLAY_ROW_9, "Button Released");
+                                   }
+                          }
       }
       break;
 
@@ -954,38 +982,17 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
       //below event cases as part of A9
 
-    case sl_bt_evt_gatt_procedure_completed_id:
-             // CLIENT
-             /* Check which GATT procedure was completed */
-             /* If Discover Services by UUID was completed, check return status and set evtGattComplete */
-             if(evt->data.evt_gatt_procedure_completed.result == 0)
-               {
-                 /* Set the GATT completed event */
-                // ble_data.discoveryEvt = GATT_COMPLETE;
-               }
-             else
-               {
-                 LOG_ERROR("sl_bt_evt_gatt_procedure_completed_id() returned != 0 status=0x%04x\r\n",
-                            (unsigned int) evt->data.evt_gatt_procedure_completed.result);
-                 /* Increase the security level and initiate passkey bonding */
-                 if(evt->data.evt_gatt_procedure_completed.result == ((sl_status_t) SL_STATUS_BT_ATT_INSUFFICIENT_ENCRYPTION))
-                   {
-                     sc = sl_bt_sm_increase_security(ble_data.connectionhandle);
-                     if (sc != SL_STATUS_OK)
-                       {
-                         LOG_ERROR("sl_bt_sm_increase_security() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
-                       }
-                   }
-               }
-             break;
 
-             /* Button Press Event */
+
       case sl_bt_evt_system_external_signal_id:
+
+
               if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB1)
                 {
                   LOG_INFO("check button PB1\n\r");
-                  /* PB0 is not pressed, send a read characteristic value */
-                  if(GPIO_PinInGet(gpioPortF, PB0_pin) == 1)
+
+
+                  if(GPIO_PinInGet(gpioPortF, PB0_pin) == 1)             //PB0 is released
                     {
                       LOG_INFO("PB0 pressed\n\r");
                       sc = sl_bt_gatt_read_characteristic_value(ble_data.connectionhandle, ble_data.characteristicHandle[1]);
@@ -994,11 +1001,12 @@ void handle_ble_event(sl_bt_msg_t *evt)
                           LOG_ERROR("sl_bt_gatt_read_characteristic_value() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
                         }
                     }
-                  /* PB0 Button is pressed, toggle indications */
-                  else if(GPIO_PinInGet(gpioPortF, PB0_pin) == 0)            //0-release
+
+                  else if(GPIO_PinInGet(gpioPortF, PB0_pin) == 0)            //PB0 is pressed
                     {
-                      /* Flip indications for the Btn_State Characteristic */
-                      ble_data.button_enable ^= 2; // Second bit is flipped to turn on/off indications
+
+                      ble_data.button_enable ^= 2;                          //Flip indications
+
                       sc = sl_bt_gatt_set_characteristic_notification(ble_data.connectionhandle,
                                                                       ble_data.characteristicHandle[1],
                                                                       ble_data.button_enable);
@@ -1008,22 +1016,24 @@ void handle_ble_event(sl_bt_msg_t *evt)
                         }
                     }
                 }
-              else if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB0)
-                {
-                  LOG_INFO("check button PB0\n\r");
-                  /* Pairing request received */
-                  if(ble_data.state == PAIRING)
+                 else if(evt->data.evt_system_external_signal.extsignals == CHECK_BUTTON_EVENT_PB0)
                     {
-                      LOG_INFO("PAIRING IN PPROGRESS\n\r");
-                      displayPrintf(DISPLAY_ROW_PASSKEY, " ");
-                      displayPrintf(DISPLAY_ROW_ACTION, " ");
+                           LOG_INFO("check button PB0\n\r");
 
-                      sc = sl_bt_sm_passkey_confirm(ble_data.connectionhandle, 1);
-                      if (sc != SL_STATUS_OK)
+                    if(ble_data.state == PAIRING)                                   //pairing
+                    {
+                                LOG_INFO("PAIRING IN PPROGRESS\n\r");
+                                displayPrintf(DISPLAY_ROW_PASSKEY, " ");
+                               displayPrintf(DISPLAY_ROW_ACTION, " ");
+
+                               sc = sl_bt_sm_passkey_confirm(ble_data.connectionhandle, 1);
+
+                        if (sc != SL_STATUS_OK)
                         {
                           LOG_ERROR("sl_bt_sm_passkey_confirm() returned != 0 status=0x%04x\r\n", (unsigned int) sc);
                         }
-                      else ble_data.state = BONDING;
+
+                       ble_data.state = BONDING;
                     }
                 }
               break;
@@ -1031,8 +1041,8 @@ void handle_ble_event(sl_bt_msg_t *evt)
       case sl_bt_evt_sm_bonding_failed_id:
               ble_data.state = DELETE;
 
-              LOG_ERROR("Bonding request for connection %d failed, reason = %d\r\n", evt->data.evt_sm_bonding_failed.connection,
-                        evt->data.evt_sm_bonding_failed.reason);
+              LOG_ERROR("BONDING REQUEST IS FAILED : CONNECTION HANDLE - %d\r\n REASON - %d\r\n",
+                                           evt->data.evt_sm_bonding_failed.connection, evt->data.evt_sm_bonding_failed.reason);        //Bonding failed
               break;
 
       case sl_bt_evt_sm_confirm_passkey_id:

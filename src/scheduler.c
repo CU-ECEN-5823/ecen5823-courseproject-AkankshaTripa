@@ -9,7 +9,7 @@
 #include <sl_power_manager.h>
 #include "em_device.h"
 #include "timers.h"
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 #include "ble.h"
 #include "sl_bt_api.h"
@@ -414,7 +414,8 @@ void discovery_state_machine(sl_bt_msg_t *evt)
             sc= sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
                                                            bleDataPtr->characteristicHandle[0],
                                                            sl_bt_gatt_indication);
-                                                            //uint8_t connection,
+
+                                                        //uint8_t connection,
                                                         // uint16_t characteristic,
                                                         // uint8_t flags
 
@@ -476,46 +477,8 @@ void discovery_state_machine(sl_bt_msg_t *evt)
         LOG_INFO("entering confirmation\n\r");
        if(event == sl_bt_evt_gatt_characteristic_value_id)
           {
-           /* LOG_INFO("entering confirmation event\n\r");
-            // Check if the att_opcode and gatt characteristic handle match
-               if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
-               evt->data.evt_gatt_characteristic_value.characteristic ==bleDataPtr->characteristicHandle[0])
-                          {
-                            sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
-                            if (sc != SL_STATUS_OK)
-                              {
-                                LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
-                              }
-                           client_temperature = (evt->data.evt_gatt_characteristic_value.value.data);
-                           LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
-                           int32_t temp = FLOAT_TO_INT32 (client_temperature);
-                           LOG_INFO("Received Temperature = %d\r\n", (temp));
-                           displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
-                          }
-            // If it is an indication or a read response for btn state, display it
-                 if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication ||
-                               evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response) &&
-                                evt->data.evt_gatt_characteristic_value.characteristic == bleDataPtr->characteristicHandle[1])
-                          {
-                            // Send confirmation only if it is an indication
-                            if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
-                              {
-                                LOG_INFO("entering confirmation button\n\r");
-                                sc = sl_bt_gatt_send_characteristic_confirmation(bleDataPtr->connectionhandle);
-                                if (sc != SL_STATUS_OK)
-                                  {
-                                    LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
-                                  }
-                              }
-                            uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
-                            if(client_btn_state == 1)
-                                displayPrintf(DISPLAY_ROW_9, "Button Pressed");
-                            else if(client_btn_state == 0)
-                              displayPrintf(DISPLAY_ROW_9, "Button Released");
-                            LOG_INFO("Button State = %s\r\n", client_btn_state ? "Button Pressed" : "Button Released");
-                          }*/
-
-            nextState=close;
+           //confirmation state changes done in ble
+                      nextState=close;
            }
           else{
                  if(event == sl_bt_evt_connection_closed_id)
