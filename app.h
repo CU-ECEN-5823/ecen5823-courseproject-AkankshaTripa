@@ -26,42 +26,72 @@
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
  *
- *
- * Editor: Feb 26, 2022, Dave Sluiter
- * Change: Added comment about use of .h files.
- *
- *
+ * Date:        08-07-2021
+ * Author:      Dave Sluiter
+ * Description: This code was created by the Silicon Labs application wizard
+ *              and started as "Bluetooth - SoC Empty".
+ *              It is to be used only for ECEN 5823 "IoT Embedded Firmware".
+ *              The MSLA referenced above is in effect.
  *
  ******************************************************************************/
 
-// Students: Remember, a header file (a .h file) generally defines an interface
-//           for functions defined within an implementation file (a .c file).
-//           The .h file defines what a caller (a user) of a .c file requires.
-//           At a minimum, the .h file should define the publicly callable
-//           functions, i.e. define the function prototypes. #define and type
-//           definitions can be added if the caller requires theses.
+
+// *************************************************
+// Students: It is OK to modify this file.
+//           Make edits appropriate for each
+//           assignment.
+// *************************************************
+
 
 #ifndef APP_H
 #define APP_H
 
-#define EM0 0
-#define EM1 1
-#define EM2 2
-#define EM3 3
 
-#define LOWEST_ENERGY_MODE EM2    //change VALUES for EM0/EM1/EM2/EM3
+#include "em_common.h"
+#include "app_assert.h"
+#include "src/ble_device_type.h"
+#include "src/gpio.h"
+#include "src/lcd.h"
+#include "src/timers.h"
+#include "src/i2c.h"
+#include "src/oscillators.h"
+#include "sl_bluetooth.h"
+#include "gatt_db.h"
+#include "sl_status.h"
 
-#include "sl_bt_api.h"
-/**************************************************************************//**
+
+#define EM0 0   //For Run Mode - Energy Mode 0
+#define EM1 1   // For Sleep Mode - Energy Mode 1
+#define EM2 2   // For Deep Sleep Mode - Energy Mode 2
+#define EM3 3   // For Stop Mode - Energy Mode 3
+
+#define LOWEST_ENERGY_MODE EM2
+
+#define TIME_TO_WAIT 80000 // 100 msec wait time adjusted with tolerance of 20msec
+
+#define TIME_TO_TRANSFER 11000  // 11 msec transfer time converted to microsec.
+
+#define LETIMER_PERIOD_MS 3000  // 3 SEC
+
+#if (LOWEST_ENERGY_MODE == EM3)
+ #define ACTUAL_CLK_FREQ  1000    // Frequency of OSC = 1kHz & prescaler = 1
+#else
+  #define ACTUAL_CLK_FREQ  8192  // Frequency of OSC = 32.768kHz & prescaler = 4
+#endif
+/*From reference of the Lecture video and presentations*/
+#define VALUE_TO_LOAD (LETIMER_PERIOD_MS*ACTUAL_CLK_FREQ)/1000
+
+
+
+
+/**************************************************************************
  * Application Init.
  *****************************************************************************/
 void app_init(void);
 
-/**************************************************************************//**
+/**************************************************************************
  * Application Process Action.
  *****************************************************************************/
 void app_process_action(void);
 
-//void handle_ble_event(evt);
-
-#endif // APP_H
+#endif // APP_H */

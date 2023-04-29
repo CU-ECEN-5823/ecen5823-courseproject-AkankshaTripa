@@ -15,13 +15,14 @@
 #include "sl_bt_api.h"
 #include "sl_bt_api_compatibility.h"
 #include "i2c.h"
-//#define INCLUDE_LOG_DEBUG 1
+#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "src/lcd.h"
 #include "ble_device_type.h"
 #include "src/gpio.h"
 #include "em_gpio.h"
 #include "math.h"
+#include "timers.h"
 
 #define MIN_INTERVAL 60
 #define MAX_INTERVAL 60
@@ -591,6 +592,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                             {
                                LOG_INFO("**************LED ON ****************\n\r");
                                            ble_data.ok_to_send_htm_indications = true;
+                                           ble_data.ult_indications = 1;
                                            gpioLed0SetOn();
                              }
 
@@ -600,12 +602,14 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                     evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_indication)         //when there is confirmation from client
                            {
                                           ble_data.indication_in_flight = false;
+
                             }
                            else if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == sl_bt_gatt_disable)                 //when indication are OFF
                              {
                                             displayPrintf(DISPLAY_ROW_TEMPVALUE, " ");
                                               ble_data.ok_to_send_htm_indications = false;
                                               gpioLed0SetOff();
+                                              ble_data.ult_indications = 0;
 
                              }
 
@@ -623,6 +627,7 @@ void handle_ble_event(sl_bt_msg_t *evt)
                            {
                                             ble_data.button_enable = 1;
                                             gpioLed1SetOn();
+
                             }
 
 
@@ -640,7 +645,50 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
                 }
 
-               break;
+
+
+               //ULTRASONIC CHARACTERISTIC
+
+               else if(evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_distance_measure &&
+                         evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_client_config)
+                       {
+                         LOG_INFO("in ultrasonic CHARATCERISTICS\n");
+
+                         if(evt->data.evt_gatt_server_characteristic_status.client_config_flags ==  sl_bt_gatt_server_indication)
+                           {
+                             ble_data.ult_indications = 1;
+                             ble_data.connectionhandle =  evt->data.evt_gatt_server_characteristic_status.connection;
+                             gpioLed0SetOn();
+                           }
+
+                         else
+                           {
+                             ble_data.ult_indications = 0;
+                             displayPrintf(DISPLAY_ROW_TEMPVALUE, "%s", "");
+                             gpioLed0SetOff();
+                           }
+                       }
+                     break;
+
+                     //LIGHT CHARACTERISTICS
+                     if(evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_light_measure &&
+                               evt->data.evt_gatt_server_characteristic_status.status_flags == sl_bt_gatt_server_client_config)
+                             {
+                               LOG_INFO("in LIGHT CHARATCERISTICS\n");
+                               if(evt->data.evt_gatt_server_characteristic_status.client_config_flags ==  sl_bt_gatt_server_indication)
+                                 {
+                                   ble_data.ult_indications  = 1;
+                                   ble_data.connectionhandle =  evt->data.evt_gatt_server_characteristic_status.connection;
+                                   gpioLed0SetOn();
+                                 }
+
+                               else
+                                 {
+                                   ble_data.ult_indications = 0;
+                                   gpioLed0SetOff();
+                                 }
+                             }
+                           break;
 
      case sl_bt_evt_gatt_server_indication_timeout_id:
                //Possible event from calling sl_bt_gatt_server_send_indication() - i.e. we never received
@@ -887,6 +935,10 @@ void handle_ble_event(sl_bt_msg_t *evt)
         {
                       ble_data.serviceHandle[1] = evt->data.evt_gatt_service.service;
         }
+      else
+        {
+          //do nothing
+        }
 
       break;
 
@@ -900,6 +952,11 @@ void handle_ble_event(sl_bt_msg_t *evt)
        else if( UUID_Compare(evt, CHARACTERISTIC) )
          {
                       ble_data.characteristicHandle[1] = evt->data.evt_gatt_characteristic.characteristic;
+         }
+
+       else
+         {
+           //do nothing
          }
 
             break;

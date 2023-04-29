@@ -164,4 +164,54 @@
       </descriptor>
     </characteristic>
   </service>
+  
+  <!--Ultrasonic Sensor-->
+  <service advertise="false" name="Ultrasonic Sensor" requirement="mandatory" sourceId="" type="primary" uuid="00000003-38c8-433e-87ec-652a2d136289">
+    <informativeText/>
+    
+    <!--Distance -->
+    <characteristic const="false" id="distance_measure" name="Distance " sourceId="" uuid="00000004-38c8-433e-87ec-652a2d136289">
+      <informativeText/>
+      <value length="4" type="hex" variable_length="false">00</value>
+      <properties>
+        <read authenticated="false" bonded="true" encrypted="false"/>
+        <indicate authenticated="false" bonded="true" encrypted="false"/>
+      </properties>
+      
+      <!--Client Characteristic Configuration-->
+      <descriptor const="false" discoverable="true" id="client_characteristic_configuration_6" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
+        <properties>
+          <read authenticated="false" bonded="false" encrypted="false"/>
+          <write authenticated="false" bonded="false" encrypted="false"/>
+        </properties>
+        <value length="2" type="hex" variable_length="false">00</value>
+        <informativeText/>
+      </descriptor>
+    </characteristic>
+  </service>
+  
+  <!--Light Sensor-->
+  <service advertise="true" name="Light Sensor" requirement="mandatory" sourceId="" type="primary" uuid="00000005-38c8-433e-87ec-652a2d136289">
+    <informativeText/>
+    
+    <!--Light-->
+    <characteristic const="false" id="light_measure" name="Light" sourceId="" uuid="00000006-38c8-433e-87ec-652a2d136289">
+      <informativeText/>
+      <value length="4" type="hex" variable_length="false">00</value>
+      <properties>
+        <read authenticated="false" bonded="true" encrypted="false"/>
+        <indicate authenticated="false" bonded="true" encrypted="false"/>
+      </properties>
+      
+      <!--Client Characteristic Configuration-->
+      <descriptor const="false" discoverable="true" id="client_characteristic_configuration_7" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
+        <properties>
+          <read authenticated="false" bonded="false" encrypted="false"/>
+          <write authenticated="false" bonded="false" encrypted="false"/>
+        </properties>
+        <value length="2" type="hex" variable_length="false">00</value>
+        <informativeText/>
+      </descriptor>
+    </characteristic>
+  </service>
 </gatt>

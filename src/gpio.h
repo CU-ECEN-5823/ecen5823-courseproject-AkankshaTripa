@@ -42,6 +42,12 @@
 #define PB1_port gpioPortF
 #define PB1_pin  7
 
+#define TRIG_PORT gpioPortD    //pin 11 on board
+#define TRIG_PIN 12
+
+#define ECHO_PORT gpioPortF    //pin 13 on board
+#define ECHO_PIN 3
+
 // Function prototypes
 void gpioInit();
 void gpioLed0SetOn();
@@ -61,6 +67,7 @@ void button_enable();
 void disable_button_irq();
 
 
-
+void set_trig();
+void clear_trig();
 
 #endif /* SRC_GPIO_H_ */

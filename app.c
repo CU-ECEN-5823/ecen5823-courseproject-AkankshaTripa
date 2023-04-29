@@ -26,7 +26,7 @@
  *    misrepresented as being the original software.
  * 3. This notice may not be removed or altered from any source distribution.
  *
- * Date:        02-25-2022
+ * Date:        08-07-2021
  * Author:      Dave Sluiter
  * Description: This code was created by the Silicon Labs application wizard
  *              and started as "Bluetooth - SoC Empty".
@@ -34,13 +34,7 @@
  *              The MSLA referenced above is in effect.
  *
  ******************************************************************************/
-#include "em_common.h"
-#include "app_assert.h"
-#include "sl_bluetooth.h"
-#include "gatt_db.h"
-#include "app.h"
-#include <em_letimer.h>
-#include "src/lcd.h"
+
 
 // *************************************************
 // Students: It is OK to modify this file.
@@ -48,37 +42,20 @@
 //           assignment.
 // *************************************************
 
-#include "sl_status.h"             // for sl_status_print()
-#include "src/timers.h"
-#include "src/oscillators.h"
-#include "src/ble_device_type.h"
-#include "src/gpio.h"
-#include "src/lcd.h"
 
-
-#include "src/i2c.h"
-#include "src/scheduler.h"
-#include "src/ble.h"
-
-// Students: Here is an example of how to correctly include logging functions in
-//           each .c file.
-//           Apply this technique to your other .c files.
-//           Do not #include "src/log.h" in any .h file! This logging scheme is
-//           designed to be included at the top of each .c file that you want
-//           to call one of the LOG_***() functions from.
-
-// Include logging specifically for this .c file
-//#define INCLUDE_LOG_DEBUG 1
-#include "src/log.h"
 #include "app.h"
 
-
-// *************************************************
-// Power Manager
-// *************************************************
+// Include logging for this file
+#define INCLUDE_LOG_DEBUG 1
+#include "src/log.h"
+#include "em_device.h"
+#include "em_chip.h"
+#include "em_cmu.h"
+#include "em_adc.h"
 
 // See: https://docs.silabs.com/gecko-platform/latest/service/power_manager/overview
 #if defined(SL_CATALOG_POWER_MANAGER_PRESENT)
+
 
 // -----------------------------------------------------------------------------
 // defines for power manager callbacks
@@ -88,14 +65,14 @@
 //   Return true to allow system to sleep when you expect/want an IRQ to wake
 //   up the MCU from the call to sl_power_manager_sleep() in the main while (1)
 //   loop.
-//
-// Students: We'll need to modify this for A2 onward so that compile time we
-//           control what the lowest EM (energy mode) the MCU sleeps to. So
-//           think "#if (expression)".
-//#define APP_IS_OK_TO_SLEEP      (false)  //false for EM0
-#define APP_IS_OK_TO_SLEEP      (true)    //true for EM1, EM2, EM3
-
-
+// Students: We'll need to modify this for A2 onward.
+//#define APP_IS_OK_TO_SLEEP      (false)
+//#define APP_IS_OK_TO_SLEEP      (true)
+#if LOWEST_ENERGY_MODE == EM0
+#define APP_IS_OK_TO_SLEEP      (false)
+#else
+#define APP_IS_OK_TO_SLEEP      (true)
+#endif
 // Return values for app_sleep_on_isr_exit():
 //   SL_POWER_MANAGER_IGNORE; // The module did not trigger an ISR and it doesn't want to contribute to the decision
 //   SL_POWER_MANAGER_SLEEP;  // The module was the one that caused the system wakeup and the system SHOULD go back to sleep
@@ -119,29 +96,29 @@
 
 #endif // defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 
-
-// *************************************************
-// Power Manager Callbacks
-// The values returned by these 2 functions AND
-// adding and removing power manage requirements is
-// how we control when EM mode the MCU goes to when
-// sl_power_manager_sleep() is called in the main
-// while (1) loop.
-// *************************************************
-
+/*****************************************************************************
+ * Application Power Manager callbacks
+ *****************************************************************************/
 #if defined(SL_CATALOG_POWER_MANAGER_PRESENT)
 
 bool app_is_ok_to_sleep(void)
 {
+
   return APP_IS_OK_TO_SLEEP;
+
 } // app_is_ok_to_sleep()
 
 sl_power_manager_on_isr_exit_t app_sleep_on_isr_exit(void)
 {
+
   return APP_SLEEP_ON_ISR_EXIT;
+
 } // app_sleep_on_isr_exit()
 
 #endif // defined(SL_CATALOG_POWER_MANAGER_PRESENT)
+
+
+//#include "native_gecko.h"
 
 
 /**************************************************************************//**
@@ -149,106 +126,45 @@ sl_power_manager_on_isr_exit_t app_sleep_on_isr_exit(void)
  *****************************************************************************/
 SL_WEAK void app_init(void)
 {
-  // Put your application 1-time initialization code here.
+  // Put your application 1-time init code here
   // This is called once during start-up.
   // Don't call any Bluetooth API functions until after the boot event.
 
+
   // Student Edit: Add a call to gpioInit() here
-   gpioInit();
+  gpioInit();
 
-   Oscillator_Init();            //Initialising oscillator
+  Oscillator_Init(); // Oscillator initialization
 
-   initLETIMER0 ();              //Initialising LETIMER0
+  initLETIMER0();  // LETIMER initialization
 
-   NVIC_ClearPendingIRQ (LETIMER0_IRQn);
-   NVIC_EnableIRQ(LETIMER0_IRQn); // config NVIC to take IRQs from LETIMER0
-
-   if(LOWEST_ENERGY_MODE==EM1)
-     {
-       sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1); //Power for EM1 needed
-     }
-   if(LOWEST_ENERGY_MODE==EM2)
-     {
-       sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM2); //Power for EM2 needed
-     }
-
-
-
-  //sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);
-
- // sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM2);
-
-} // app_init()
-
-
-
-
-/*****************************************************************************
- * delayApprox(), private to this file.
- * A value of 3500000 is ~ 1 second. After assignment 1 you can delete or
- * comment out this function. Wait loops are a bad idea in general.
- * We'll discuss how to do this a better way in the next assignment.
- *****************************************************************************/
-/*static void delayApprox(int delay)
-{
-  volatile int i;
-
-  for (i = 0; i < delay; ) {
-      i=i+1;
+  /*Setting LEMODE EM1 and EM2 for Power Manager*/
+  if (LOWEST_ENERGY_MODE){
+      sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);
+  }
+  else if(LOWEST_ENERGY_MODE == EM2){
+      sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM2);
+  }
+  else{
+      //No Action
   }
 
-}*/ // delayApprox()
-
+}
 
 /**************************************************************************//**
  * Application Process Action.
  *****************************************************************************/
 SL_WEAK void app_process_action(void)
 {
-  // Put your application code here for A1 to A4.
+  // Put your application code here.
   // This is called repeatedly from the main while(1) loop
   // Notice: This function is not passed or has access to Bluetooth stack events.
   //         We will create/use a scheme that is far more energy efficient in
   //         later assignments.
 
- //delayApprox(3500000);
 
- /* gpioLed1SetOn(); gpioLed0SetOn();
-
-  delayApprox(3500000);
-
-  gpioLed1SetOff(); gpioLed0SetOff();*/
-
- // delayApprox(3500000);
-
-   //gpioLed1SetOn();
-
-  // delayApprox(3500000);
-
-  // gpioLed1SetOff();
-
-
- /* uint32_t myevent;    //line 239-243 commented for A5
-
-  myevent=getNextEvent();
-
-  state_machine(myevent);*/
-
- /* switch(myevent)
-  {
-    case temperature_measure_event:
-      i2cGetTemperature();
-      break;
-    case wait_event:
-      //do nothing
-      break;
-  }*/
-
-
+  /* No Action*/
 } // app_process_action()
-
-
-
 
 
 /**************************************************************************//**
@@ -259,35 +175,25 @@ SL_WEAK void app_process_action(void)
  *
  * The code here will process events from the Bluetooth stack. This is the only
  * opportunity we will get to act on an event.
- *
  *****************************************************************************/
 void sl_bt_on_event(sl_bt_msg_t *evt)
 {
-
-  // Just a trick to hide a compiler warning about unused input parameter evt.
-  (void) evt;
-
-
-
-  // For A5 onward:
   // Some events require responses from our application code,
   // and don’t necessarily advance our state machines.
-  // For A5 uncomment the next 2 function calls
-   handle_ble_event(evt); // put this code in ble.c/.h
+  // For assignment 5 uncomment the next 2 function calls
 
-     #if DEVICE_IS_BLE_SERVER
-      // SERVER
-     // sequence through states driven by events
-      state_machine(evt);  // put this code in scheduler.c/.h
+  handle_ble_event(evt); // put this code in ble.c/.h
 
-     #else
-     //CLIENT
-      // sequence through service and characteristic discovery
-      discovery_state_machine(evt); // put this code in src/scheduler.c/.h
+  // sequence through states driven by events
+#if DEVICE_IS_BLE_SERVER
+  // SERVER
+  // sequence through states driven by events
+  state_machine(evt); // put this code in scheduler.c/.h
+#else
+  //CLIENT
+  // sequence through service and characteristic discovery
+  discovery_state_machine(evt); // put this code in src/scheduler.c/.h
 #endif
 
-
 } // sl_bt_on_event()
-
-
 

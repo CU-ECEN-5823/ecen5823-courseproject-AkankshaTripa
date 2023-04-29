@@ -17,13 +17,25 @@ void schedulerSetEventClosedEvent();
 void schedulerSetEventCheckButtonStatusPB0();
 void schedulerSetEventCheckButtonStatusPB1();
 
+void schedulerSetEventCheckEventEcho();
+//
+///*  GLOBAL VARIABLES  */
+///*
+// * t1             = LETIMER0 value when rising edge echo pulse GPIO Interrupt is received
+// * t2             = LETIMER0 value when rising edge echo pulse GPIO Interrupt is received
+// * difference     = time difference between two GPIO interrupts
+// * duration       = convert LETIMER difference to microseconds
+// * distance       = distance in cm
+// */
+
 typedef enum uint32_t
 {
   eventuf=1,            //event for temperature measurement
   eventcomp1=2,
   i2ccomplete=4,
   checkbuttonPB0=8,
-  checkbuttonPB1=16
+  checkbuttonPB1=16,
+  eventecho=32
 
 }event_si7021;
 

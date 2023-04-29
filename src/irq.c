@@ -112,5 +112,10 @@ void GPIO_ODD_IRQHandler()
       schedulerSetEventCheckButtonStatusPB1();
     }
 
+  if (flags & (1 << ECHO_PIN))
+     {
+      schedulerSetEventCheckEventEcho();
+     }
+
 }
 
