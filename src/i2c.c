@@ -1,11 +1,28 @@
-/*
- *Code Credits: Lecture Slides
- * */
-
+/*****************************************************************************************************************
+                      Project Name : Home Automation System
+                      File Name    : i2c.c
+                      Description  : A home automation system that uses HC-SR04 and TEMT6000 sensors
+                                     to greatly improve the functionality and convenience of a home.
+                      Author       : Akanksha Tripathi & Vaibhavi Thakur
+                      Date:        : 05/02/2023
+                      Version      : 5.6
+                      Course       : IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE          :  Simplicity Studio
+ *                    Code Credits : All the initialization has been taken form lecture slides
+ *                                    Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                    Sensor Interfacing Guidance by Varun Mehta
+ *                                    ADC Configuration Guidance by Professor
+ *                                    All the other references are from the previous project
+ *
+ *
+ *
+ *
+*************************************************************************************************************************************/
 
 //Initialize the I2C hardware
 #include <em_i2c.h>
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "em_device.h"
 #include "i2c.h"
 #include "gpio.h"

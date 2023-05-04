@@ -48,6 +48,9 @@
 #define ECHO_PORT gpioPortF    //pin 13 on board
 #define ECHO_PIN 3
 
+#define SIG_PORT gpioPortD
+#define SIG_PIN  10
+
 // Function prototypes
 void gpioInit();
 void gpioLed0SetOn();

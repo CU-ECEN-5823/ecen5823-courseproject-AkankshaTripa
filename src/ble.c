@@ -1,8 +1,25 @@
-/*
- * References: All the initialization has been taken form lecture slides
- *              Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+/**************************************************************
+
+*                     Project Name : Home Automation System
+                      File Name    : ble.c
+                      Description  : A home automation system that uses HC-SR04 and TEMT6000 sensors
+                                     to greatly improve the functionality and convenience of a home.
+                      Author       : Akanksha Tripathi & Vaibhavi Thakur
+                      Date:        : 05/02/2023
+                      Version      : 5.6
+                      Course       : IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE          :  Simplicity Studio
+ *                    Code Credits : All the initialization has been taken form lecture slides
+ *                                    Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                    Sensor Interfacing Guidance by Varun Mehta
+ *                                    ADC Configuration Guidance by Professor
+ *                                    All the other references are from the previous project
  *
- * */
+ *
+ *
+ *
+*************************************************************************************************************************************/
 #include "ble.h"
 #include <stdbool.h>
 #include "em_common.h"
@@ -44,8 +61,10 @@ ble_data_struct_t ble_data;
 #define SCAN_PASSIVE 0
 #define SECURITY_FLAG 0x0F
 
-#define CHARACTERISTIC 1
 #define SERVICE 0
+#define CHARACTERISTIC 1
+#define ULTRASONIC 2
+#define LIGHT 3
 
 #define MIN_ADVERTISING_INTERVAL 400
 #define MAX_ADVERTISING_INTERVAL 400
@@ -54,6 +73,8 @@ ble_data_struct_t ble_data;
 #define TIME 4096
 #define HANDLE 1
 #define SINGLE_SHOT 0
+
+bool DetectionSuccess=0;
 
 // interrupt service routine for a peripheral
 // CPU+NVIC clear the IRQ pending bit in the NVIC
@@ -209,6 +230,7 @@ static uint8_t UUID_Compare(sl_bt_msg_t *evt, uint8_t event_type)
             check_uuid++;
           }
         }
+
     }
 
   if(check_uuid == 16)          //address matching done
@@ -656,15 +678,15 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
                          if(evt->data.evt_gatt_server_characteristic_status.client_config_flags ==  sl_bt_gatt_server_indication)
                            {
-                             ble_data.ult_indications = 1;
                              ble_data.connectionhandle =  evt->data.evt_gatt_server_characteristic_status.connection;
+                             ble_data.ult_indications = 1;
                              gpioLed0SetOn();
                            }
 
                          else
                            {
-                             ble_data.ult_indications = 0;
                              displayPrintf(DISPLAY_ROW_TEMPVALUE, "%s", "");
+                             ble_data.ult_indications = 0;
                              gpioLed0SetOff();
                            }
                        }
@@ -677,8 +699,8 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                LOG_INFO("in LIGHT CHARATCERISTICS\n");
                                if(evt->data.evt_gatt_server_characteristic_status.client_config_flags ==  sl_bt_gatt_server_indication)
                                  {
-                                   ble_data.ult_indications  = 1;
                                    ble_data.connectionhandle =  evt->data.evt_gatt_server_characteristic_status.connection;
+                                   ble_data.ult_indications  = 1;
                                    gpioLed0SetOn();
                                  }
 
@@ -935,6 +957,16 @@ void handle_ble_event(sl_bt_msg_t *evt)
         {
                       ble_data.serviceHandle[1] = evt->data.evt_gatt_service.service;
         }
+      //check for ultrasonic service
+      else if(memcmp(evt->data.evt_gatt_service.uuid.data, &Ultrasonic_service, 16) == 0)
+        {
+                 ble_data.UltrasonicServiceHandle = evt->data.evt_gatt_service.service;
+         }
+      //check for light service
+      else if(memcmp(evt->data.evt_gatt_service.uuid.data, &Light_service, 16) == 0)
+        {
+                 ble_data.lightServiceHandle = evt->data.evt_gatt_service.service;
+         }
       else
         {
           //do nothing
@@ -948,12 +980,22 @@ void handle_ble_event(sl_bt_msg_t *evt)
       if(evt->data.evt_gatt_characteristic.uuid.data[0] == thermo_char[0] && evt->data.evt_gatt_characteristic.uuid.data[1] == thermo_char[1])                // memcmp(evt->data.evt_gatt_characteristic.uuid.data,thermo_char,2) == 0)
          {
                   ble_data.characteristicHandle[0] = evt->data.evt_gatt_characteristic.characteristic;
+                  LOG_INFO("Thermo handle detected\r\n");
          }
        else if( UUID_Compare(evt, CHARACTERISTIC) )
          {
                       ble_data.characteristicHandle[1] = evt->data.evt_gatt_characteristic.characteristic;
+                      LOG_INFO("Button handle detected\r\n");
          }
+       else if(memcmp(evt->data.evt_gatt_characteristic.uuid.data, &Ultrasonic_char, 16) == 0)
+         {
+                ble_data.UltrasonicCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
 
+           }
+       else if(memcmp(evt->data.evt_gatt_characteristic.uuid.data, &Light_char, 16) == 0)
+         {
+                ble_data.lightCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+            }
        else
          {
            //do nothing
@@ -984,8 +1026,6 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
     case sl_bt_evt_gatt_characteristic_value_id:
       {
-
-
         if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication &&
                     evt->data.evt_gatt_characteristic_value.characteristic ==ble_data.characteristicHandle[0])
          {
@@ -998,25 +1038,25 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                 LOG_INFO("Client Temperature = %d\r\n", client_temperature[4]);
                                 int32_t temp = FLOAT_TO_INT32 (client_temperature);
                                 LOG_INFO("Received Temperature = %d\r\n", (temp));
-                                displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
+                             //   displayPrintf(DISPLAY_ROW_TEMPVALUE, "Temp = %d", (temp));
             }
 
          if((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication || evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response)
                             &&  evt->data.evt_gatt_characteristic_value.characteristic == ble_data.characteristicHandle[1])                  // //  If it is an indication for button state
 
-                         {
+            {
 
-                                 if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)                    // If it is an indication then only send confirmation
-                                   {
-                                     LOG_INFO("entering confirmation button\n\r");
-                                     sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
-                                     if (sc != SL_STATUS_OK)
-                                       {
-                                         LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
-                                       }
-                                   }
+                if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)                    // If it is an indication then only send confirmation
+                  {
+                      LOG_INFO("entering confirmation button\n\r");
+                      sc = sl_bt_gatt_send_characteristic_confirmation(ble_data.connectionhandle);
+                      if (sc != SL_STATUS_OK)
+                      {
+                         LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                      }
+                  }
 
-                                 uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
+                      uint8_t client_btn_state = evt->data.evt_gatt_characteristic_value.value.data[0];
 
                                  if(client_btn_state == 1)
                                    {
@@ -1026,8 +1066,82 @@ void handle_ble_event(sl_bt_msg_t *evt)
                                    {
                                       displayPrintf(DISPLAY_ROW_9, "Button Released");
                                    }
-                          }
-      }
+              }
+
+         //ADDING CASES FOR DISTANCE AND LIGHT
+         if(((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)|| (evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response))
+                   &&  (evt->data.evt_gatt_characteristic_value.characteristic == ble_data.UltrasonicCharacteristicHandle))
+           {
+               LOG_INFO("ULTRAVIOLET\n\r");
+                    if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
+                    {
+                        LOG_INFO("entering confirmation ULTRAVIOLET\n\r");
+                        sc = sl_bt_gatt_send_characteristic_confirmation(evt->data.evt_gatt_characteristic_value.connection);
+                        if (sc != SL_STATUS_OK)
+                         {
+                           LOG_ERROR("sl_bt_gatt_send_characteristic_confirmation() returned != 0 status=0x%04x", (unsigned int) sc);
+                         }
+                    }
+
+
+                    LOG_INFO(" UV value received\r\n");
+
+                    uint8_t uv = evt->data.evt_gatt_characteristic_value.value.data[0];
+
+                    LOG_INFO("Value of distance is = %d\r\n", uv);
+
+                              if (uv > 100){
+                                     DetectionSuccess = 0;
+                                     displayPrintf(DISPLAY_ROW_8, "  ");
+                                     displayPrintf(DISPLAY_ROW_9, "  ");
+                                     displayPrintf(DISPLAY_ROW_TEMPVALUE, "No Presence Detected");
+                                     gpioLed0SetOff(); }
+                                else{
+                                    displayPrintf(DISPLAY_ROW_TEMPVALUE, "Detected Presence");
+                                    DetectionSuccess = 1;}
+
+                   // displayPrintf(DISPLAY_ROW_TEMPVALUE, "UV = %d", uv);
+
+           }
+
+        if(((evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)|| (evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_read_response))
+                   &&  (evt->data.evt_gatt_characteristic_value.characteristic == ble_data.lightCharacteristicHandle))
+          {
+            LOG_INFO("LIGHT\n\r");
+
+                    if(evt->data.evt_gatt_characteristic_value.att_opcode == sl_bt_gatt_handle_value_indication)
+                      {
+                        LOG_INFO(" Confirmation of light characteristic\r\n");
+                        sc = sl_bt_gatt_send_characteristic_confirmation(evt->data.evt_gatt_characteristic_value.connection);
+                      }
+
+
+                    uint8_t   light = evt->data.evt_gatt_characteristic_value.value.data[0];
+
+                    LOG_INFO("Value of Light received is = %d\r\n", light);
+
+                                if(DetectionSuccess){
+                                    if (light < 100)
+                                    {
+                                        gpioLed0SetOn();
+                                        displayPrintf(DISPLAY_ROW_9, "LED ON");
+                                        displayPrintf(DISPLAY_ROW_8, "Night");
+                                    }
+                                    else if (light > 100)
+                                    {
+                                        gpioLed0SetOff();
+                                        displayPrintf(DISPLAY_ROW_9, "LED OFF");
+                                        displayPrintf(DISPLAY_ROW_8, "Morning");
+                                    } }
+                                else
+                                {
+                                    displayPrintf(DISPLAY_ROW_8, "  ");
+                                    displayPrintf(DISPLAY_ROW_9, "  ");
+                                }
+          }
+
+
+   }
       break;
 
     case sl_bt_evt_system_soft_timer_id:
@@ -1096,10 +1210,12 @@ void handle_ble_event(sl_bt_msg_t *evt)
               break;
 
       case sl_bt_evt_sm_bonding_failed_id:
+        {
               ble_data.state = DELETE;
 
               LOG_ERROR("BONDING REQUEST IS FAILED : CONNECTION HANDLE - %d\r\n REASON - %d\r\n",
                                            evt->data.evt_sm_bonding_failed.connection, evt->data.evt_sm_bonding_failed.reason);        //Bonding failed
+        }
               break;
 
       case sl_bt_evt_sm_confirm_passkey_id:
@@ -1126,10 +1242,10 @@ void handle_ble_event(sl_bt_msg_t *evt)
 
 
 #endif
-  }
+  //}
 }
 
-
+}
 void server_indication(uint32_t temperature)
 {
   sl_status_t sc;

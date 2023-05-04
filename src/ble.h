@@ -1,3 +1,26 @@
+/***********************************************************************************************************************************
+
+*                     Project Name : Home Automation System
+                      File Name    : ble.h
+                      Description  : A home automation system that uses HC-SR04 and TEMT6000 sensors
+                                     to greatly improve the functionality and convenience of a home.
+                      Author       : Akanksha Tripathi & Vaibhavi Thakur
+                      Date:        : 05/02/2023
+                      Version      : 5.6
+                      Course       : IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE          :  Simplicity Studio
+ *                    Code Credits : All the initialization has been taken form lecture slides
+ *                                    Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                    Sensor Interfacing Guidance by Varun Mehta
+ *                                    ADC Configuration Guidance by Professor
+ *                                    All the other references are from the previous project
+ *
+ *
+ *
+ *
+*************************************************************************************************************************************/
+
 #ifndef BLE_H
 #define BLE_H
 
@@ -26,11 +49,17 @@ static const uint8_t Pushbutton_service[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x6
 static const uint8_t Pushbutton_characteristics[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
                                            0x3e, 0x43, 0xc8, 0x38, 0x02, 0x00, 0x00, 0x00};
 
-static const uint8_t ultrasonic_service[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
+static const uint8_t Ultrasonic_service[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
                                            0x3e, 0x43, 0xc8, 0x38, 0x03, 0x00, 0x00, 0x00};
 
-static const uint8_t ultrasonic_char[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
+static const uint8_t Ultrasonic_char[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
                                           0x3e, 0x43, 0xc8, 0x38, 0x04, 0x00, 0x00, 0x00};
+
+static const uint8_t Light_service[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
+                                          0x3e, 0x43, 0xc8, 0x38, 0x05, 0x00, 0x00, 0x00};
+
+static const uint8_t Light_char[16] = {0x89, 0x62, 0x13, 0x2d, 0x2a, 0x65, 0xec, 0x87,
+                                          0x3e, 0x43, 0xc8, 0x38, 0x06, 0x00, 0x00, 0x00};
 
 
 // BLE Data Structure, save all of our private BT data in here.
@@ -54,13 +83,16 @@ typedef struct {
 
   uint32_t serviceHandle[2];
   uint16_t characteristicHandle[2];
-  //uint8_t discoveryEvt;
 
-  int state;                         //1-pairing, 2-bonding 0-deleteBonding
+   int state;                         //1-pairing, 2-bonding 0-deleteBonding
 
-  bool volatile ult_indications;
+   bool volatile ult_indications;    //variable for both light and uv indications
 
- // bool indicate;
+   uint32_t UltrasonicServiceHandle;
+   uint16_t UltrasonicCharacteristicHandle;
+
+   uint32_t lightServiceHandle;
+   uint16_t lightCharacteristicHandle;
 
  // values unique for client
 } ble_data_struct_t;

@@ -46,12 +46,14 @@
 #include "app.h"
 
 // Include logging for this file
-#define INCLUDE_LOG_DEBUG 1
+//#define INCLUDE_LOG_DEBUG 1
 #include "src/log.h"
 #include "em_device.h"
 #include "em_chip.h"
 #include "em_cmu.h"
 #include "em_adc.h"
+#include "src/scheduler.h"
+#include "src/ble.h"
 
 // See: https://docs.silabs.com/gecko-platform/latest/service/power_manager/overview
 #if defined(SL_CATALOG_POWER_MANAGER_PRESENT)

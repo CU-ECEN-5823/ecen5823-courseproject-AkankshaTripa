@@ -1,3 +1,26 @@
+/************************************************************
+
+*                     Project Name: Home Automation System
+                      File Name : ble.c
+                      Description: A  a home automation system that uses HC-SR04 and TEMT6000 sensors
+                                   to greatly improve the functionality and convenience of a home.
+                      Author: Akanksha Tripathi & Vaibhavi Thakur
+                      Date:   05/02/2023
+                      Version: 5.6
+                      Course: IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE: Simplicity Studio
+ *                    References: All the initialization has been taken form lecture slides
+ *                                Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                Sensor Interfacing Guidance by Varun Mehta
+ *                                ADC Configuration Guidance by Professor
+ *                                All the other references are from the previous project
+ *
+ *
+ *
+ *
+*************************************************************************************************************************************/
+
 #include "irq.h"
 //#define INCLUDE_LOG_DEBUG 1
 #include <em_letimer.h>
@@ -10,6 +33,10 @@
 #include "gpio.h"
 #include "scheduler.h"
 #include "i2c.h"
+#include "em_device.h"
+#include "em_adc.h"
+#include "em_chip.h"
+#include "em_cmu.h"
 
 //uint8_t button;
 
@@ -66,22 +93,6 @@ void I2C0_IRQHandler(void)
   CORE_ATOMIC_IRQ_ENABLE();
  }
 
-/*void GPIO_EVEN_IRQHandler()
-{
-  GPIO_IntClear(1 << PB0_pin);
-
-  if(GPIO_PinInGet(PB0_port, PB0_pin)==1)
-  {
-      button = 0x00;        //button release
-  }
-  else
-  {
-      button = 0x01;        //button press
-  }
-  schedulerSetEventCheckButtonStatus();
-}*/
-
-
 
 void GPIO_EVEN_IRQHandler()
 {
@@ -118,4 +129,5 @@ void GPIO_ODD_IRQHandler()
      }
 
 }
+
 

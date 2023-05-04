@@ -8,6 +8,8 @@
    March 17
    Dave Sluiter: Use this file to define functions that set up or control GPIOs.
 
+Modified By : Akanksha Tripathi & Vaibhavi Thakur
+Credits     : Varun Mehta for GPIO Initialisation
  */
 
 
@@ -28,52 +30,7 @@
 //// See the radio board user guide at https://www.silabs.com/documents/login/user-guides/ug279-brd4104a-user-guide.pdf
 //// and GPIO documentation at https://siliconlabs.github.io/Gecko_SDK_Doc/efm32g/html/group__GPIO.html
 //// to determine the correct values for these.
-//void gpioInit(){
-//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthStrongAlternateStrong);
-//  //GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-//  GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, false);
-//
-//  GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
-//  //GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
-//  GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, false);
-//
-//
-//  GPIO_DriveStrengthSet(gpioPortD, gpioDriveStrengthStrongAlternateStrong);
-//  GPIO_PinModeSet(gpioPortD, 15, gpioModePushPull, false);
-//
-//  //GPIO_DriveStrengthSet(PB0_port, gpioDriveStrengthStrongAlternateStrong);
-//  GPIO_PinModeSet(PB0_port, PB0_pin, gpioModeInputPullFilter, true);
-//  GPIO_ExtIntConfig (PB0_port, PB0_pin, PB0_pin, true, true, true);
-//
-//  GPIO_DriveStrengthSet(gpioPortD, gpioDriveStrengthStrongAlternateStrong);
-//  //GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-//  GPIO_PinModeSet(gpioPortD, 13, gpioModePushPull, false);
-//
-//#if DEVICE_IS_BLE_SERVER
-//  // NO ACTION
-//#else
-//  //GPIO_DriveStrengthSet(PB0_port, gpioDriveStrengthStrongAlternateStrong);
-//    GPIO_PinModeSet(PB1_port, PB1_pin, gpioModeInputPullFilter, true);
-//    GPIO_ExtIntConfig (PB1_port, PB1_pin, PB1_pin, true, true, true);
-//#endif
-//
-//    GPIO_DriveStrengthSet(TRIG_PORT, gpioDriveStrengthWeakAlternateWeak);
-//    GPIO_PinModeSet(TRIG_PORT, TRIG_PIN, gpioModePushPull, false);
-//
-//    GPIO_PinModeSet(ECHO_PORT, ECHO_PIN, gpioModeInput, false);  //previously configured as o/p
-//     GPIO_ExtIntConfig(ECHO_PORT, ECHO_PIN, ECHO_PIN, true, true, true);
-//
-//  //   GPIO_DriveStrengthSet(SIG_PORT, gpioDriveStrengthWeakAlternateWeak);
-// //    GPIO_PinModeSet(SIG_PORT, SIG_PIN, gpioModeInput, false);  //previously configured as o/p
-//      //GPIO_ExtIntConfig(SIG_PORT, SIG_PIN, SIG_PIN, true, true, true);
-//  //Enabling Interrupt for GPIO
-//
-//  NVIC_ClearPendingIRQ(GPIO_EVEN_IRQn);
-//  NVIC_EnableIRQ(GPIO_EVEN_IRQn);
-//
-//  NVIC_ClearPendingIRQ(GPIO_ODD_IRQn);
-//   NVIC_EnableIRQ(GPIO_ODD_IRQn);
-//   }
+
 
 //// Set GPIO drive strengths and modes of operation
 void gpioInit()
@@ -103,7 +60,6 @@ void gpioInit()
 #if DEVICE_IS_BLE_SERVER
   // NO ACTION
 #else
-  //GPIO_DriveStrengthSet(PB0_port, gpioDriveStrengthStrongAlternateStrong);
     GPIO_PinModeSet(PB1_port, PB1_pin, gpioModeInputPullFilter, true);
     GPIO_ExtIntConfig (PB1_port, PB1_pin, PB1_pin, true, true, true);
 #endif
@@ -114,9 +70,8 @@ void gpioInit()
     GPIO_PinModeSet(ECHO_PORT, ECHO_PIN, gpioModeInput, false);  //previously configured as o/p
      GPIO_ExtIntConfig(ECHO_PORT, ECHO_PIN, ECHO_PIN, true, true, true);
 
-   //  GPIO_DriveStrengthSet(SIG_PORT, gpioDriveStrengthWeakAlternateWeak);
-  //   GPIO_PinModeSet(SIG_PORT, SIG_PIN, gpioModeInput, false);  //previously configured as o/p
-      //GPIO_ExtIntConfig(SIG_PORT, SIG_PIN, SIG_PIN, true, true, true);
+    GPIO_DriveStrengthSet(SIG_PORT, gpioDriveStrengthWeakAlternateWeak);
+    GPIO_PinModeSet(SIG_PORT, SIG_PIN, gpioModeInput, false);  //previously configured as o/p
 
   //Enabling Interrupt for GPIO
 	NVIC_ClearPendingIRQ(GPIO_EVEN_IRQn);

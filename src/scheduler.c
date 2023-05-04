@@ -1,8 +1,27 @@
 /*
- * Code Credits: Lecture Slides
- * ADCInit: Reference by Professor
- * Distance Sensor Configuration : Guidance by Varun Mehta
- * */
+ * ************************************************************
+
+*                     Project Name : Home Automation System
+                      File Name    : scheduler.c
+                      Description  : A  home automation system that uses HC-SR04 and TEMT6000 sensors
+                                     to greatly improve the functionality and convenience of a home.
+                      Author       : Akanksha Tripathi & Vaibhavi Thakur
+                      Date:        : 05/02/2023
+                      Version      : 5.6
+                      Course       : IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE          :  Simplicity Studio
+ *                    Code Credits : All the initialization has been taken form lecture slides
+ *                                    Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                    Sensor Interfacing Guidance by Varun Mehta
+ *                                    ADC Configuration Guidance by Professor
+ *                                    All the other references are from the previous project
+ *
+ *
+ *
+ *
+*************************************************************************************************************************************/
+
 //#include <em_i2c.h>
 #include "em_core.h"
 #include "scheduler.h"
@@ -168,13 +187,9 @@ void schedulerSetEventCheckEventEcho()
 //getting value from ADC
 uint16_t get_adc_data()
 {
-  LOG_INFO("IN ADC DATA");
-//  NVIC_EnableIRQ(ADC0_IRQn);
- // ADC_IntEnable(ADC0,ADC_IF_SINGLE);
-  ADC_Start(ADC0, adcStartSingle);
-
-  while(!(ADC0->STATUS & _ADC_STATUS_SINGLEDV_MASK));
-
+      LOG_INFO("IN ADC DATA");
+      ADC_Start(ADC0, adcStartSingle);
+      while(!(ADC0->STATUS & _ADC_STATUS_SINGLEDV_MASK));
       uint32_t sample = ADC_DataSingleGet(ADC0);
       LOG_INFO("sample= %d\n\r", sample);
       sensor_data = ((sample * 2500)/4096);
@@ -186,10 +201,6 @@ uint16_t get_adc_data()
 //Initialising ADC
 void ADCInit(void)
 {
-
-  CMU_Select_TypeDef clockSelectType;
-  clockSelectType=CMU_ClockSelectGet(cmuClock_HF);
-
   uint32_t frequency;
   frequency=CMU_ClockFreqGet(cmuClock_HFPER);
 
@@ -226,7 +237,6 @@ void ADCInit(void)
   initSingle.acqTime    = adcAcqTime1;  // set acquisition time to meet minimum requirement
 
   initSingle.posSel = adcPosSelAPORT3XCH2;
-
   initSingle.negSel = adcNegSelVSS;
 
   initSingle.prsEnable  = false;
@@ -266,40 +276,49 @@ void state_machine(sl_bt_msg_t *evt)
 
 
  // event_si7021 event_new=evt;
-  if(bleDataPtr->connection_open==true && bleDataPtr->ok_to_send_htm_indications==true)
-  {
+  if(bleDataPtr->connection_open==true)
+{
       switch(nextState)
   {
 
 
 
-   case stateIdle:
+    case stateIdle:
       nextState = stateIdle;
       LOG_INFO("stateIdle before if %d\n\r", evt->data.evt_system_external_signal.extsignals);
       if(evt->data.evt_system_external_signal.extsignals ==eventuf)
         {
           LOG_INFO("stateIdle\n\r");
 
-          gpioSi7021enable();                           //enable temp sensor
-          timerWaitUs_irq(80000);                       //wait for 80ms to powerup si7021
+         // gpioSi7021enable();                           //enable temp sensor
+         // timerWaitUs_irq(80000);                       //wait for 80ms to powerup si7021
 
           set_trig();
 
-           ADCInit();
+          //LIGHT INTENSITY CALCULATION
 
-                    uint16_t light_intensity_data = get_adc_data();
+          if(detection)
+            {
 
-                   LOG_INFO("Light Intensity= %d\n\r", light_intensity_data);
-
-                    displayPrintf(DISPLAY_ROW_8, "Light = %d", light_intensity_data);
+                    ADCInit();
+                    uint16_t light_intensity = get_adc_data();
+                    LOG_INFO("Light Intensity= %d\n\r", light_intensity);
+                    displayPrintf(DISPLAY_ROW_8, "Light = %d", light_intensity);
 
                      sc = sl_bt_gatt_server_send_indication(bleDataPtr->connectionhandle,      // characteristic
                                                             gattdb_light_measure,            // Attribute from gatt_db.h
                                                             2,                                  // value_len
-                                                            &light_intensity_data);
+                                                            &light_intensity
+                                                            );
+                     if (sc != SL_STATUS_OK)
+                     {
+                       LOG_ERROR("sl_bt_gatt_server_send_indication() returned != 0 status=0x%04x", (unsigned int) sc);
+                      }
 
-                              timerWaitUs(10);
-                              nextState=statetimerwait80;
+            }
+
+                    timerWaitUs_irq(10);
+                    nextState=statetimerwait80;
 
         }
       break;
@@ -311,9 +330,9 @@ void state_machine(sl_bt_msg_t *evt)
         {
           LOG_INFO("statetimerwait80\n\r");
           clear_trig();
-          i2c_init();                                                     //intilaise i2c transfer
-         sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);      //add power requirements for EM1 mode
-          i2c_write();                                                    //perform i2c write
+         // i2c_init();                                                     //intilaise i2c transfer
+        //  sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);      //add power requirements for EM1 mode
+          //i2c_write();                                                    //perform i2c write
           nextState=statei2cwrite;
 
         }
@@ -325,8 +344,8 @@ void state_machine(sl_bt_msg_t *evt)
         {
             LOG_INFO("ECHO CHECK statei2cwrite\n\r");
             time_start = LETIMER_CounterGet(LETIMER0);
-          sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power for EM1
-          timerWaitUs_irq(10800);                                             //wait for 10.8 ms for calculations
+          //sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power for EM1
+         // timerWaitUs_irq(10800);                                             //wait for 10.8 ms for calculations
           nextState=statetimerwait108;
         }
       break;
@@ -337,9 +356,9 @@ void state_machine(sl_bt_msg_t *evt)
         {
            LOG_INFO("statetimerwait108\n\r");
            time_end = LETIMER_CounterGet(LETIMER0);
-             LOG_INFO("time_end = %d\n\r", time_end);
-           sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);          //add power req for read operation
-           i2c_read();                                                         //perform read operation
+           LOG_INFO("time_end = %d\n\r", time_end);
+         //  sl_power_manager_add_em_requirement(SL_POWER_MANAGER_EM1);          //add power req for read operation
+         //  i2c_read();                                                         //perform read operation
            nextState=statei2cread;
          }
         break;
@@ -351,11 +370,13 @@ void state_machine(sl_bt_msg_t *evt)
                LOG_INFO("statei2cread\n\r");
 
                // server_indication();
-               temperaturereading();
 
-                sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power req
+               // sl_power_manager_remove_em_requirement(SL_POWER_MANAGER_EM1);       //remove power req
 
-                              delta_time = time_start-time_end;
+                //CALCULATION OF DISTANCE
+
+
+                             delta_time = time_start-time_end;
                              LOG_INFO("delta_time = %d\n\r", delta_time);
                              time = (delta_time*1000000)>>13;
                              LOG_INFO("time = %d\n\r", time);
@@ -366,10 +387,15 @@ void state_machine(sl_bt_msg_t *evt)
                              sc = sl_bt_gatt_server_send_indication(bleDataPtr->connectionhandle,
                                                                     gattdb_distance_measure,
                                                                     sizeof(distance),
-                                                                    &distance);
+                                                                    &distance
+                                                                    );
+                             if (sc != SL_STATUS_OK)
+                             {
+                               LOG_ERROR("sl_bt_gatt_server_send_indication() returned != 0 status=0x%04x", (unsigned int) sc);
+                              }
 
                // gpioSi7021disable();                                                //disabling Si7021
-                i2cStop();                                                          //stop i2c transfer
+               // i2cStop();                                                          //stop i2c transfer
                 nextState=stateIdle;
               }
 
@@ -593,7 +619,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
                    LOG_ERROR("sl_bt_gatt_set_characteristic_notification() returned != 0 status=0x%04x", (unsigned int) sc);
                 }
 
-                 nextState=confirmation;
+                 nextState=UvConnection;
                }
          else{
 
@@ -606,6 +632,218 @@ void discovery_state_machine(sl_bt_msg_t *evt)
           LOG_INFO("notify first ended\n\r");
           break;
 
+  //ADDING BELOW LINES AS PART OF PROJECT
+
+    case UvConnection :
+             {
+               nextState=UvConnection;
+               LOG_INFO("discovery second started\n\r");
+               if(event == sl_bt_evt_gatt_procedure_completed_id)
+               {
+                 //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                   LOG_INFO("discovery start inside if condition\n\r");
+                  sc= sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionhandle,
+                                                                  sizeof(Ultrasonic_service),
+                                                                  (const uint8_t*)Ultrasonic_service
+                                                                  ) ;
+                                                                        // uint8_t connection,
+                                                                        //   uint32_t service,
+                                                                        //   size_t uuid_len,
+                                                                        //   const uint8_t* uuid
+                  if (sc != SL_STATUS_OK)
+                   {
+                     LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                    }
+
+                         nextState=LightConnection;
+               }
+               else{
+                        if(event == sl_bt_evt_connection_closed_id)
+                        {
+                           nextState=ideal;
+                        }
+                     }
+             }
+             LOG_INFO("UV CONNECTION\n\r");
+
+             break;
+
+    case LightConnection :
+                    {
+                      nextState=LightConnection;
+                      LOG_INFO("discovery second started\n\r");
+                      if(event == sl_bt_evt_gatt_procedure_completed_id)
+                      {
+                        //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                          LOG_INFO("discovery start inside if condition\n\r");
+                          sc = sl_bt_gatt_discover_primary_services_by_uuid(bleDataPtr->connectionhandle,
+                                                                             sizeof(Light_service),
+                                                                             (const uint8_t*)Light_service
+                                                                              );
+                                                                               // uint8_t connection,
+                                                                               //   uint32_t service,
+                                                                               //   size_t uuid_len,
+                                                                               //   const uint8_t* uuid
+                         if (sc != SL_STATUS_OK)
+                          {
+                            LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                           }
+
+                                nextState=UvService;
+                      }
+                      else{
+                               if(event == sl_bt_evt_connection_closed_id)
+                               {
+                                  nextState=ideal;
+                               }
+                            }
+                    }
+                    LOG_INFO("LIGHT CONNECTION\n\r");
+
+                    break;
+
+
+    case UvService :
+                {
+                  nextState=UvService;
+                  LOG_INFO("discovery second started\n\r");
+                  if(event == sl_bt_evt_gatt_procedure_completed_id)
+                  {
+                    //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                      LOG_INFO("discovery start inside if condition\n\r");
+                      sc = sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionhandle,
+                                                                       bleDataPtr->UltrasonicServiceHandle,
+                                                                       sizeof(Ultrasonic_char),
+                                                                       (const uint8_t*)Ultrasonic_char
+                                                                        );
+                                                                           // uint8_t connection,
+                                                                           //   uint32_t service,
+                                                                           //   size_t uuid_len,
+                                                                           //   const uint8_t* uuid
+                     if (sc != SL_STATUS_OK)
+                      {
+                        LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                       }
+
+                            nextState=LightService;
+                  }
+                  else{
+                           if(event == sl_bt_evt_connection_closed_id)
+                           {
+                              nextState=ideal;
+                           }
+                        }
+                }
+                LOG_INFO("UV SERVICE\n\r");
+
+                break;
+
+    case LightService :
+                      {
+                        nextState=LightService;
+                        LOG_INFO("discovery second started\n\r");
+                        if(event == sl_bt_evt_gatt_procedure_completed_id)
+                        {
+                          //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                            LOG_INFO("discovery start inside if condition\n\r");
+                            sc = sl_bt_gatt_discover_characteristics_by_uuid(bleDataPtr->connectionhandle,
+                                                                             bleDataPtr->lightServiceHandle,
+                                                                             sizeof(Light_char),
+                                                                             (const uint8_t*)Light_char
+                                                                              ) ;
+                                                                                 // uint8_t connection,
+                                                                                 //   uint32_t service,
+                                                                                 //   size_t uuid_len,
+                                                                                 //   const uint8_t* uuid
+                           if (sc != SL_STATUS_OK)
+                            {
+                              LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                             }
+
+                                  nextState=UvCharacteristic;
+                        }
+                        else{
+                                 if(event == sl_bt_evt_connection_closed_id)
+                                 {
+                                    nextState=ideal;
+                                 }
+                              }
+                      }
+                      LOG_INFO("LIGHT SERVICE\n\r");
+
+                      break;
+
+
+    case UvCharacteristic :
+                {
+                  nextState=UvCharacteristic;
+                  LOG_INFO("discovery second started\n\r");
+                  if(event == sl_bt_evt_gatt_procedure_completed_id)
+                  {
+                    //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                      LOG_INFO("discovery start inside if condition\n\r");
+                      sc = sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
+                                                                      bleDataPtr->UltrasonicCharacteristicHandle,
+                                                                      sl_bt_gatt_indication
+                                                                      ) ;
+                                                                           // uint8_t connection,
+                                                                           //   uint32_t service,
+                                                                           //   size_t uuid_len,
+                                                                           //   const uint8_t* uuid
+                     if (sc != SL_STATUS_OK)
+                      {
+                        LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                       }
+
+                            nextState=LightCharacteristic;
+                  }
+                  else{
+                           if(event == sl_bt_evt_connection_closed_id)
+                           {
+                              nextState=ideal;
+                           }
+                        }
+                }
+                LOG_INFO("UV Characteristic\n\r");
+
+                break;
+
+
+
+
+    case LightCharacteristic :
+                    {
+                      nextState=LightCharacteristic;
+                      LOG_INFO("discovery second started\n\r");
+                      if(event == sl_bt_evt_gatt_procedure_completed_id)
+                      {
+                        //  bleDataPtr.coconnectionhandle =evt->data.evt_connection_opened.connection;
+                          LOG_INFO("discovery start inside if condition\n\r");
+                          sc = sl_bt_gatt_set_characteristic_notification(bleDataPtr->connectionhandle,
+                                                                          bleDataPtr->lightCharacteristicHandle,
+                                                                          sl_bt_gatt_indication
+                                                                          ) ;
+                                                                               // uint8_t connection,
+                                                                               //   uint32_t service,
+                                                                               //   size_t uuid_len,
+                                                                               //   const uint8_t* uuid
+                         if (sc != SL_STATUS_OK)
+                          {
+                            LOG_ERROR("sl_bt_gatt_discover_characteristics_by_uuid() returned != 0 status=0x%04x", (unsigned int) sc);
+                           }
+
+                                nextState=confirmation;
+                      }
+                      else{
+                               if(event == sl_bt_evt_connection_closed_id)
+                               {
+                                  nextState=ideal;
+                               }
+                            }
+                    }
+                    LOG_INFO("LIGHT CHARACTERISTIC\n\r");
+
+                    break;
 
     case confirmation:
       {
@@ -625,6 +863,7 @@ void discovery_state_machine(sl_bt_msg_t *evt)
          }
          LOG_INFO("confirmation ended\n\r");
      break;
+
     case close :
       {
         LOG_INFO("close started\n\r");

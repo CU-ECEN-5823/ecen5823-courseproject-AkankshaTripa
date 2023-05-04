@@ -1,3 +1,27 @@
+/**************************************************************
+
+*                     Project Name : Home Automation System
+                      File Name    : scheduler.h
+                      Description  : A  a home automation system that uses HC-SR04 and TEMT6000 sensors
+                                     to greatly improve the functionality and convenience of a home.
+                      Author       : Akanksha Tripathi & Vaibhavi Thakur
+                      Date:        : 05/02/2023
+                      Version      : 5.6
+                      Course       : IoT Embedded Firmware
+                      Target Device: Blue GECKO EFR32
+                      IDE          :  Simplicity Studio
+ *                    Code Credits : All the initialization has been taken form lecture slides
+ *                                    Function handle_ble_event : reference from SOC thermomemter project and SOC client project
+ *                                    Sensor Interfacing Guidance by Varun Mehta
+ *                                    ADC Configuration Guidance by Professor
+ *                                    All the other references are from the previous project
+ *
+ *
+ *
+ *
+*************************************************************************************************************************************/
+
+
 #ifndef __SCHEDULER_H
 #define __SCHEDULER_H
 
@@ -18,15 +42,7 @@ void schedulerSetEventCheckButtonStatusPB0();
 void schedulerSetEventCheckButtonStatusPB1();
 
 void schedulerSetEventCheckEventEcho();
-//
-///*  GLOBAL VARIABLES  */
-///*
-// * t1             = LETIMER0 value when rising edge echo pulse GPIO Interrupt is received
-// * t2             = LETIMER0 value when rising edge echo pulse GPIO Interrupt is received
-// * difference     = time difference between two GPIO interrupts
-// * duration       = convert LETIMER difference to microseconds
-// * distance       = distance in cm
-// */
+
 
 typedef enum uint32_t
 {
@@ -58,6 +74,12 @@ typedef enum
  discovery_second,
  notify_first,
  notify_second,
+ UvConnection,
+ LightConnection,
+ UvService,
+ LightService,
+ UvCharacteristic,
+ LightCharacteristic,
  confirmation,
  close
 }Client_t;
